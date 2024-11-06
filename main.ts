@@ -3,11 +3,13 @@ import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Set
 // Remember to rename these classes and interfaces!
 
 interface MyPluginSettings {
-	mySetting: string;
+	blueskyIdentifier: string;
+	blueskyAppPassword: string;
 }
 
 const DEFAULT_SETTINGS: MyPluginSettings = {
-	mySetting: 'default'
+	blueskyIdentifier: '',
+	blueskyAppPassword: ''
 }
 
 export default class MyPlugin extends Plugin {
@@ -65,6 +67,28 @@ export default class MyPlugin extends Plugin {
 			}
 		});
 
+		// Add new command to post to Bluesky
+		// In the onload() method, update the post-to-bluesky command:
+		this.addCommand({
+			id: 'post-to-bluesky',
+			name: 'Post to Bluesky',
+			editorCallback: async (editor: Editor) => {
+				const selectedText = editor.getSelection();
+				if (!selectedText) {
+					new Notice('Please select some text to post');
+					return;
+				}
+
+				try {
+					const { createBlueskyPost } = await import('./bluesky');
+					await createBlueskyPost(this, selectedText);
+					new Notice('Successfully posted to Bluesky!');
+				} catch (error) {
+					new Notice(`Failed to post: ${error.message}`);
+				}
+			}
+		});
+
 		// This adds a settings tab so the user can configure various aspects of the plugin
 		this.addSettingTab(new SampleSettingTab(this.app, this));
 
@@ -97,12 +121,12 @@ class SampleModal extends Modal {
 	}
 
 	onOpen() {
-		const {contentEl} = this;
+		const { contentEl } = this;
 		contentEl.setText('Woah!');
 	}
 
 	onClose() {
-		const {contentEl} = this;
+		const { contentEl } = this;
 		contentEl.empty();
 	}
 }
@@ -116,18 +140,29 @@ class SampleSettingTab extends PluginSettingTab {
 	}
 
 	display(): void {
-		const {containerEl} = this;
-
+		const { containerEl } = this;
 		containerEl.empty();
 
 		new Setting(containerEl)
-			.setName('Setting #1')
-			.setDesc('It\'s a secret')
+			.setName('Bluesky Identifier')
+			.setDesc('Your Bluesky handle or email (required)')
 			.addText(text => text
-				.setPlaceholder('Enter your secret')
-				.setValue(this.plugin.settings.mySetting)
+				.setPlaceholder('handle.bsky.social')
+				.setValue(this.plugin.settings.blueskyIdentifier)
 				.onChange(async (value) => {
-					this.plugin.settings.mySetting = value;
+					this.plugin.settings.blueskyIdentifier = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('Bluesky App Password')
+			.setDesc('Your Bluesky app password (required)')
+			.addText(text => text
+				.setPlaceholder('Enter app password')
+				.then(text => text.inputEl.type = 'password')
+				.setValue(this.plugin.settings.blueskyAppPassword)
+				.onChange(async (value) => {
+					this.plugin.settings.blueskyAppPassword = value;
 					await this.plugin.saveSettings();
 				}));
 	}
