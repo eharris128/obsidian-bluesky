@@ -4,7 +4,7 @@ import type MyPlugin from '@/main';
 import { BLUESKY_TITLE, VIEW_TYPE_TAB } from '@/consts';
 
 export class BlueskyTab extends ItemView {
-    private readonly splugin: MyPlugin;
+    private readonly plugin: MyPlugin;
     private bot: BlueskyBot;
     private posts: string[] = [''];
     private isPosting: boolean = false;
