@@ -1,8 +1,7 @@
 import { ItemView, WorkspaceLeaf } from "obsidian";
 import { BlueskyBot } from '@/bluesky';
 import type MyPlugin from '@/main';
-
-export const BLUESKY_TAB_VIEW = "bluesky-tab-view";
+import { BLUESKY_TITLE, VIEW_TYPE_TAB } from '@/consts';
 
 export class BlueskyTab extends ItemView {
     private plugin: MyPlugin;
@@ -18,11 +17,11 @@ export class BlueskyTab extends ItemView {
     }
 
     getViewType(): string {
-        return BLUESKY_TAB_VIEW;
+        return VIEW_TYPE_TAB;
     }
 
     getDisplayText(): string {
-        return "Bluesky";
+        return BLUESKY_TITLE;
     }
 
     private handlePostChange(index: number, event: Event) {

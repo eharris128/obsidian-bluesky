@@ -1,8 +1,8 @@
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
-import { BLUESKY_SIDEBAR_VIEW, BlueskySidebar } from "@/views/BlueskySidebar";
-import { BlueskyBot, createBlueskyPost } from '@/bluesky';
-import { BLUESKY_TAB_VIEW, BlueskyTab } from '@/views/BlueskyTab';
-
+import { BlueskySidebar } from "@/views/BlueskySidebar";
+import { createBlueskyPost } from '@/bluesky';
+import { BlueskyTab } from '@/views/BlueskyTab';
+import { BLUESKY_TITLE, VIEW_TYPE_TAB, VIEW_TYPE_SIDEBAR } from '@/consts';
 // Remember to rename these classes and interfaces!
 
 interface MyPluginSettings {
@@ -21,14 +21,14 @@ export default class MyPlugin extends Plugin {
     async activateSidebar() {
         const { workspace } = this.app;
 
-        let leaf = workspace.getLeavesOfType(BLUESKY_SIDEBAR_VIEW)[0];
+        let leaf = workspace.getLeavesOfType(VIEW_TYPE_SIDEBAR)[0];
 
         if (!leaf) {
             const newLeaf = workspace.getRightLeaf(false);
             if (!newLeaf) return; // Handle potential null
             leaf = newLeaf;
             await leaf.setViewState({
-                type: BLUESKY_SIDEBAR_VIEW,
+                type: VIEW_TYPE_SIDEBAR,
                 active: true,
             }); 3
         }
@@ -98,13 +98,13 @@ export default class MyPlugin extends Plugin {
         });
 
         this.registerView(
-            BLUESKY_SIDEBAR_VIEW,
+            VIEW_TYPE_SIDEBAR,
             (leaf) => new BlueskySidebar(leaf, this)
         );
 
         
         this.registerView(
-            BLUESKY_TAB_VIEW,
+            VIEW_TYPE_TAB,
             (leaf) => new BlueskyTab(leaf, this)
         );
 
@@ -121,7 +121,7 @@ export default class MyPlugin extends Plugin {
         });
 
         // Add a ribbon icon to activate the view
-        this.addRibbonIcon("message-square", "Bluesky", () => {
+        this.addRibbonIcon("message-square", BLUESKY_TITLE, () => {
             this.activateSidebar();
         });
 
@@ -154,7 +154,7 @@ export default class MyPlugin extends Plugin {
         const { workspace } = this.app;
         
         await workspace.getLeaf(true).setViewState({
-            type: BLUESKY_TAB_VIEW,
+            type: VIEW_TYPE_TAB,
             active: true
         });
     }
