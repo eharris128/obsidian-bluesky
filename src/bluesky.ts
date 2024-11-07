@@ -1,7 +1,7 @@
 import { AtpAgent } from '@atproto/api'
-import type MyPlugin from './main'
+import type MyPlugin from '@/main'
 
-class BlueskyBot {
+export class BlueskyBot {
   private agent: AtpAgent
   private plugin: MyPlugin
 
@@ -16,7 +16,7 @@ class BlueskyBot {
   async login(): Promise<void> {
     try {
       const { blueskyIdentifier, blueskyAppPassword } = this.plugin.settings
-      
+      console.log("woo")
       if (!blueskyIdentifier || !blueskyAppPassword) {
         throw new Error('Missing Bluesky credentials - please configure them in settings')
       }

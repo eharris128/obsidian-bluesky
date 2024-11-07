@@ -6,3 +6,30 @@ available in the app when your plugin is enabled.
 If your plugin does not need CSS, delete this file.
 
 */
+
+.bluesky-content {
+    padding: 16px;
+}
+
+.bluesky-compose {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.bluesky-compose textarea {
+    width: 100%;
+    resize: vertical;
+    padding: 8px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 4px;
+}
+
+.bluesky-buttons {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.bluesky-buttons button {
+    padding: 4px 12px;
+}
