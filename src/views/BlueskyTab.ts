@@ -24,6 +24,10 @@ export class BlueskyTab extends ItemView {
         return BLUESKY_TITLE;
     }
 
+    getIcon(): string {
+        return "megaphone";
+    }
+
     private handlePostChange(index: number, event: Event) {
         const input = event.target as HTMLTextAreaElement;
         const limitedText = input.value.slice(0, this.MAX_CHARS);

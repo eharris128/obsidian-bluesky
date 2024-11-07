@@ -121,7 +121,7 @@ export default class MyPlugin extends Plugin {
         });
 
         // Add a ribbon icon to activate the view
-        this.addRibbonIcon("message-square", BLUESKY_TITLE, () => {
+        this.addRibbonIcon("megaphone", BLUESKY_TITLE, () => {
             this.activateSidebar();
         });
 
