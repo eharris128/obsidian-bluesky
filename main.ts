@@ -143,6 +143,22 @@ class SampleSettingTab extends PluginSettingTab {
 		const { containerEl } = this;
 		containerEl.empty();
 
+		containerEl.createEl('h3', { text: 'Bluesky Settings' });
+		containerEl.createEl('p', { 
+			text: 'To get your app password:',
+		});
+		const steps = containerEl.createEl('ol');
+		const li = steps.createEl('li');
+		li.setText('Go to Bluesky App Passwords ');
+		li.createEl('a', {
+			text: 'page',
+			href: 'https://bsky.app/settings/app-passwords'
+		});
+		steps.createEl('li', { text: 'Click "Add App Password"' });
+		steps.createEl('li', { text: 'Give it a name (e.g. "Obsidian")' });
+		steps.createEl('li', { text: 'Click "Create App Password"' });
+		steps.createEl('li', { text: 'Copy the generated password' });
+
 		new Setting(containerEl)
 			.setName('Bluesky Identifier')
 			.setDesc('Your Bluesky handle or email (required)')
