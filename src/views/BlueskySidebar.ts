@@ -22,7 +22,7 @@ export class BlueskySidebar extends ItemView {
     async onOpen() {
         const container = this.containerEl.children[1];
         container.empty();
-        container.createEl("h4", { text: "Bluesky" });
+        container.createEl("h4", { text: BLUESKY_TITLE });
         
         const contentEl = container.createDiv({ cls: "bluesky-content" });
         
