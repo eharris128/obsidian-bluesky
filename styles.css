@@ -113,3 +113,10 @@ If your plugin does not need CSS, delete this file.
     height: 32px;
     line-height: 24px;
 }
+
+.add-thread-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    background-color: var(--background-modifier-border);
+    color: var(--text-muted);
+}

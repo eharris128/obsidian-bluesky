@@ -38,10 +38,17 @@ export class BlueskyTab extends ItemView {
             counter.textContent = `${limitedText.length}/${this.MAX_CHARS}`;
         }
 
-        // Force update the post button state
+        // Update button states
+        const addThreadBtn = this.containerEl.querySelector('.add-thread-btn') as HTMLButtonElement;
+        if (addThreadBtn) {
+            addThreadBtn.disabled = !this.posts[0]?.trim();
+        }
+
         const postButton = this.containerEl.querySelector('.post-btn') as HTMLButtonElement;
         if (postButton) {
-            postButton.disabled = !this.posts.some(post => post.trim());
+            const hasValidFirstPost = this.posts[0]?.trim().length > 0;
+            const hasAnyContent = this.posts.some(post => post.trim());
+            postButton.disabled = !hasValidFirstPost || !hasAnyContent;
         }
     }
 
@@ -163,6 +170,9 @@ export class BlueskyTab extends ItemView {
             text: "Add to Thread",
             cls: 'add-thread-btn'
         });
+        
+        // Disable "Add to Thread" if first post is empty
+        addThreadBtn.disabled = !this.posts[0]?.trim();
         addThreadBtn.addEventListener('click', () => this.addPost());
 
         if (this.posts.length > 1) {
@@ -177,7 +187,12 @@ export class BlueskyTab extends ItemView {
             text: this.isPosting ? "Posting..." : "Post",
             cls: 'post-btn'
         });
-        postButton.disabled = !this.posts.some(post => post.trim());
+        
+        // Update post button disabled logic
+        const hasValidFirstPost = this.posts[0]?.trim().length > 0;
+        const hasAnyContent = this.posts.some(post => post.trim());
+        postButton.disabled = this.isPosting || !hasValidFirstPost || !hasAnyContent;
+        
         postButton.addEventListener('click', () => this.publishContent());
     }
 }
