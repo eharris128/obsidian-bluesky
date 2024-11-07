@@ -1,5 +1,10 @@
-import { AtpAgent } from '@atproto/api'
+import { AtpAgent, RichText } from '@atproto/api'
 import type MyPlugin from '@/main'
+
+interface ThreadPost {
+  text: string
+  reply?: { root: { uri: string; cid: string }, parent: { uri: string; cid: string } }
+}
 
 export class BlueskyBot {
   private agent: AtpAgent
@@ -44,6 +49,38 @@ export class BlueskyBot {
     } catch (error) {
       console.error('Failed to post:', error)
       throw error
+    }
+  }
+
+  async createThread(posts: string[]): Promise<void> {
+    if (!posts.length) return
+    
+    let lastPost: { uri: string; cid: string } | null = null
+    let rootPost: { uri: string; cid: string } | null = null
+
+    for (const text of posts) {
+      const rt = new RichText({ text })
+      await rt.detectFacets(this.agent) 
+      
+      const post: ThreadPost = { text: rt.text }
+      
+      if (lastPost) {
+        post.reply = {
+          root: rootPost!,
+          parent: lastPost
+        }
+      }
+    
+      const result = await this.agent.post({
+        text: post.text,
+        reply: post.reply,
+        facets: rt.facets,
+      })
+      
+      if (!rootPost) {
+        rootPost = { uri: result.uri, cid: result.cid }
+      }
+      lastPost = { uri: result.uri, cid: result.cid }
     }
   }
 }

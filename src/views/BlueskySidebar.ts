@@ -5,14 +5,11 @@ import type MyPlugin from '@/main';
 export const BLUESKY_SIDEBAR_VIEW = "bluesky-view";
 
 export class BlueskySidebar extends ItemView {
-    private plugin: MyPlugin;
     private bot: BlueskyBot;
 
     constructor(leaf: WorkspaceLeaf, plugin: MyPlugin) {
         super(leaf);
-        this.plugin = plugin;
         this.bot = new BlueskyBot(plugin);
-        console.log("hai:", this.bot)
     }
 
     getViewType(): string {
