@@ -1,6 +1,7 @@
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
 import { BLUESKY_SIDEBAR_VIEW, BlueskySidebar } from "@/views/BlueskySidebar";
 import { BlueskyBot, createBlueskyPost } from '@/bluesky';
+import { BLUESKY_TAB_VIEW, BlueskyTab } from '@/views/BlueskyTab';
 
 // Remember to rename these classes and interfaces!
 
@@ -17,7 +18,7 @@ const DEFAULT_SETTINGS: MyPluginSettings = {
 export default class MyPlugin extends Plugin {
     settings: MyPluginSettings;
 
-    async activateView() {
+    async activateSidebar() {
         const { workspace } = this.app;
 
         let leaf = workspace.getLeavesOfType(BLUESKY_SIDEBAR_VIEW)[0];
@@ -105,21 +106,27 @@ export default class MyPlugin extends Plugin {
             (leaf) => new BlueskySidebar(leaf, this)
         );
 
+        
+        this.registerView(
+            BLUESKY_TAB_VIEW,
+            (leaf) => new BlueskyTab(leaf, this)
+        );
+
         this.addCommand({
-            id: 'open-bluesky-view',
-            name: 'Open Bluesky View',
-            callback: () => this.activateView()
+            id: 'open-bluesky-sidebar',
+            name: 'Open Bluesky Sidebar',
+            callback: () => this.activateSidebar()
         });
 
         this.addCommand({
-            id: 'open-bluesky-view',
-            name: 'Open Bluesky View',
+            id: 'open-bluesky-tab',
+            name: 'Open Bluesky Tab',
             callback: () => this.openTab()
         });
 
         // Add a ribbon icon to activate the view
         this.addRibbonIcon("message-square", "Bluesky", () => {
-            this.activateView();
+            this.activateSidebar();
         });
 
         // This adds a settings tab so the user can configure various aspects of the plugin
@@ -145,6 +152,15 @@ export default class MyPlugin extends Plugin {
 
     async saveSettings() {
         await this.saveData(this.settings);
+    }
+
+    async openTab() {
+        const { workspace } = this.app;
+        
+        await workspace.getLeaf(true).setViewState({
+            type: BLUESKY_TAB_VIEW,
+            active: true
+        });
     }
 }
 
