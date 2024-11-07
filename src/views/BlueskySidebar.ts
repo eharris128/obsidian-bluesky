@@ -50,8 +50,4 @@ export class BlueskySidebar extends ItemView {
             }
         });
     }
-
-    async onClose() {
-        // Cleanup
-    }
 } 

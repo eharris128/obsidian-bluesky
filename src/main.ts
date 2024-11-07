@@ -139,7 +139,8 @@ export default class MyPlugin extends Plugin {
     }
 
     onunload() {
-
+        this.app.workspace.detachLeavesOfType(VIEW_TYPE_SIDEBAR);
+        this.app.workspace.detachLeavesOfType(VIEW_TYPE_TAB);
     }
 
     async loadSettings() {

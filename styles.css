@@ -1,12 +1,3 @@
-/*
-
-This CSS file will be included with your plugin, and
-available in the app when your plugin is enabled.
-
-If your plugin does not need CSS, delete this file.
-
-*/
-
 .bluesky-content {
     padding: 16px;
     display: flex;
@@ -55,8 +46,6 @@ If your plugin does not need CSS, delete this file.
 .bluesky-buttons button {
     padding: 4px 12px;
 }
-
-/* Add these new styles at the end of your existing styles.css file */
 
 .threads-container {
   padding: 16px;

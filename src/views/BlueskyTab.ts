@@ -4,7 +4,7 @@ import type MyPlugin from '@/main';
 import { BLUESKY_TITLE, VIEW_TYPE_TAB } from '@/consts';
 
 export class BlueskyTab extends ItemView {
-    private plugin: MyPlugin;
+    private readonly splugin: MyPlugin;
     private bot: BlueskyBot;
     private posts: string[] = [''];
     private isPosting: boolean = false;
@@ -75,7 +75,7 @@ export class BlueskyTab extends ItemView {
         });
         textarea.addEventListener('input', (e) => this.handlePostChange(index, e));
 
-        const counterDiv = postContainer.createDiv({ 
+        postContainer.createDiv({ 
             cls: 'char-counter',
             text: `0/${this.MAX_CHARS}`
         });
@@ -170,7 +170,6 @@ export class BlueskyTab extends ItemView {
             text: "Add to Thread",
             cls: 'add-thread-btn',
             attr: {
-                // 'title': 'Add text to your first post to start a thread',
                 'aria-label': 'Add text to your first post to start a thread'
             }
         });
@@ -192,7 +191,6 @@ export class BlueskyTab extends ItemView {
             cls: 'post-btn mod-primary'
         });
         
-        // Update post button disabled logic
         const hasValidFirstPost = this.posts[0]?.trim().length > 0;
         const hasAnyContent = this.posts.some(post => post.trim());
         postButton.disabled = this.isPosting || !hasValidFirstPost || !hasAnyContent;
