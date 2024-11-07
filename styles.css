@@ -109,9 +109,23 @@ If your plugin does not need CSS, delete this file.
 .post-btn {
     background-color: var(--interactive-accent);
     color: var(--text-on-accent);
+    border-radius: 4px;
     padding: 4px 12px;
-    height: 32px;
-    line-height: 24px;
+    font-weight: 600;
+}
+
+.post-btn:not(:disabled) {
+    background-color: var(--interactive-accent);
+}
+
+.post-btn:not(:disabled):hover {
+    background-color: var(--interactive-accent-hover);
+}
+
+.post-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background-color: var(--interactive-accent);
 }
 
 .add-thread-btn:disabled {

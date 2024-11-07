@@ -168,7 +168,11 @@ export class BlueskyTab extends ItemView {
         const leftButtons = buttonContainer.createDiv({ cls: "left-buttons" });
         const addThreadBtn = leftButtons.createEl("button", { 
             text: "Add to Thread",
-            cls: 'add-thread-btn'
+            cls: 'add-thread-btn',
+            attr: {
+                // 'title': 'Add text to your first post to start a thread',
+                'aria-label': 'Add text to your first post to start a thread'
+            }
         });
         
         // Disable "Add to Thread" if first post is empty
@@ -185,7 +189,7 @@ export class BlueskyTab extends ItemView {
 
         const postButton = buttonContainer.createEl("button", { 
             text: this.isPosting ? "Posting..." : "Post",
-            cls: 'post-btn'
+            cls: 'post-btn mod-primary'
         });
         
         // Update post button disabled logic
