@@ -2,9 +2,9 @@ import { ItemView, WorkspaceLeaf } from "obsidian";
 import { BlueskyBot } from '@/bluesky';
 import type MyPlugin from '@/main';
 
-export const BLUESKY_VIEW_TYPE = "bluesky-view";
+export const BLUESKY_SIDEBAR_VIEW = "bluesky-view";
 
-export class BlueskyTab extends ItemView {
+export class BlueskySidebar extends ItemView {
     private plugin: MyPlugin;
     private bot: BlueskyBot;
 
@@ -16,7 +16,7 @@ export class BlueskyTab extends ItemView {
     }
 
     getViewType(): string {
-        return BLUESKY_VIEW_TYPE;
+        return BLUESKY_SIDEBAR_VIEW;
     }
 
     getDisplayText(): string {

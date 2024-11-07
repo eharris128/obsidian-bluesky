@@ -1,5 +1,5 @@
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
-import { BLUESKY_VIEW_TYPE, BlueskyTab } from "@/views/BlueskyTab";
+import { BLUESKY_SIDEBAR_VIEW, BlueskySidebar } from "@/views/BlueskySidebar";
 import { BlueskyBot, createBlueskyPost } from '@/bluesky';
 
 // Remember to rename these classes and interfaces!
@@ -20,14 +20,14 @@ export default class MyPlugin extends Plugin {
     async activateView() {
         const { workspace } = this.app;
 
-        let leaf = workspace.getLeavesOfType(BLUESKY_VIEW_TYPE)[0];
+        let leaf = workspace.getLeavesOfType(BLUESKY_SIDEBAR_VIEW)[0];
 
         if (!leaf) {
             const newLeaf = workspace.getRightLeaf(false);
             if (!newLeaf) return; // Handle potential null
             leaf = newLeaf;
             await leaf.setViewState({
-                type: BLUESKY_VIEW_TYPE,
+                type: BLUESKY_SIDEBAR_VIEW,
                 active: true,
             }); 3
         }
@@ -101,14 +101,20 @@ export default class MyPlugin extends Plugin {
         });
 
         this.registerView(
-            BLUESKY_VIEW_TYPE,
-            (leaf) => new BlueskyTab(leaf, this)
+            BLUESKY_SIDEBAR_VIEW,
+            (leaf) => new BlueskySidebar(leaf, this)
         );
 
         this.addCommand({
             id: 'open-bluesky-view',
             name: 'Open Bluesky View',
             callback: () => this.activateView()
+        });
+
+        this.addCommand({
+            id: 'open-bluesky-view',
+            name: 'Open Bluesky View',
+            callback: () => this.openTab()
         });
 
         // Add a ribbon icon to activate the view
