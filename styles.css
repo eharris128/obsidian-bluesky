@@ -9,17 +9,22 @@ If your plugin does not need CSS, delete this file.
 
 .bluesky-content {
     padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-width: 513.667px;
+    margin: 0 auto;
 }
 
 .bluesky-compose {
     display: flex;
     flex-direction: column;
     gap: 8px;
-    padding: 12px;
 }
 
 .bluesky-compose textarea {
     width: 100%;
+    max-width: 513.667px;
     resize: vertical;
     padding: 8px;
     border: 1px solid var(--background-modifier-border);
@@ -29,9 +34,22 @@ If your plugin does not need CSS, delete this file.
 .bluesky-buttons {
     display: flex;
     justify-content: space-between;
+    align-items: center;
     gap: 8px;
     margin-top: 8px;
-    padding: 0 12px;
+}
+
+.left-buttons {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.add-thread-btn, .remove-post {
+    color: var(--text-muted);
+    padding: 4px 8px;
+    height: 32px;
+    line-height: 24px;
 }
 
 .bluesky-buttons button {
@@ -91,4 +109,7 @@ If your plugin does not need CSS, delete this file.
 .post-btn {
     background-color: var(--interactive-accent);
     color: var(--text-on-accent);
+    padding: 4px 12px;
+    height: 32px;
+    line-height: 24px;
 }

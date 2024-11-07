@@ -158,11 +158,20 @@ export class BlueskyTab extends ItemView {
 
         const buttonContainer = container.createDiv({ cls: "bluesky-buttons" });
         
-        const addThreadBtn = buttonContainer.createEl("button", { 
+        const leftButtons = buttonContainer.createDiv({ cls: "left-buttons" });
+        const addThreadBtn = leftButtons.createEl("button", { 
             text: "Add to Thread",
             cls: 'add-thread-btn'
         });
         addThreadBtn.addEventListener('click', () => this.addPost());
+
+        if (this.posts.length > 1) {
+            const removeBtn = leftButtons.createEl("button", { 
+                cls: 'remove-post',
+                text: "Remove Post"
+            });
+            removeBtn.addEventListener('click', () => this.removePost(this.posts.length - 1));
+        }
 
         const postButton = buttonContainer.createEl("button", { 
             text: this.isPosting ? "Posting..." : "Post",
