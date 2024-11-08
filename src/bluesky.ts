@@ -71,7 +71,7 @@ export class BlueskyBot {
         }
       }
     
-      const result = await this.agent.post({
+      const result: any = await this.agent.post({
         text: post.text,
         reply: post.reply,
         facets: rt.facets,
