@@ -1,3 +1,4 @@
+import { Notice } from 'obsidian';
 import { AtpAgent, RichText } from '@atproto/api'
 import type BlueskyPlugin from '@/main'
 
@@ -22,6 +23,7 @@ export class BlueskyBot {
     try {
       const { blueskyIdentifier, blueskyAppPassword } = this.plugin.settings
       if (!blueskyIdentifier || !blueskyAppPassword) {
+        new Notice('Not logged in. Go to the Bluesky plugin settings to login.');
         throw new Error('Missing Bluesky credentials - please configure them in settings')
       }
       await this.agent.login({
@@ -50,8 +52,12 @@ export class BlueskyBot {
         }
       })
       console.log('Successfully posted to Bluesky')
+      new Notice('Successfully posted to Bluesky!');
+
     } catch (error) {
       console.error('Failed to post:', error)
+      new Notice(`Failed to post: ${error.message}`);
+
       throw error
     }
   }
