@@ -1,4 +1,4 @@
-# Bluesky - Obsidian Plugin
+# Bluesky Plugin
 - Post to Bluesky from Obsidian
 
 ## Usage Guide
