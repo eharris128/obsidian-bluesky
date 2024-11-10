@@ -37,18 +37,18 @@ export class BlueskyTab extends ItemView {
             input.value = limitedText;
         }
         
-        const counter = input.parentElement?.querySelector('.char-counter');
+        const counter = input.parentElement?.querySelector('.bluesky-char-counter');
         if (counter) {
             counter.textContent = `${limitedText.length}/${this.MAX_CHARS}`;
         }
 
         // Update button states
-        const addThreadBtn = this.containerEl.querySelector('.add-thread-btn') as HTMLButtonElement;
+        const addThreadBtn = this.containerEl.querySelector('.add-bluesky-thread-btn') as HTMLButtonElement;
         if (addThreadBtn) {
             addThreadBtn.disabled = !this.posts[0]?.trim();
         }
 
-        const postButton = this.containerEl.querySelector('.post-btn') as HTMLButtonElement;
+        const postButton = this.containerEl.querySelector('.bluesky-post-btn') as HTMLButtonElement;
         if (postButton) {
             const hasValidFirstPost = this.posts[0]?.trim().length > 0;
             const hasAnyContent = this.posts.some(post => post.trim());
@@ -87,7 +87,7 @@ export class BlueskyTab extends ItemView {
         textarea.addEventListener('input', (e) => this.handlePostChange(index, e));
 
         postContainer.createDiv({ 
-            cls: 'char-counter',
+            cls: 'bluesky-char-counter',
             text: `0/${this.MAX_CHARS}`
         });
     }
@@ -155,17 +155,17 @@ export class BlueskyTab extends ItemView {
             textarea.addEventListener('input', (e) => this.handlePostChange(index, e));
 
             postContainer.createDiv({ 
-                cls: 'char-counter',
+                cls: 'bluesky-char-counter',
                 text: `${post.length}/${this.MAX_CHARS}`
             });
         });
 
         const buttonContainer = container.createDiv({ cls: "bluesky-buttons" });
         
-        const leftButtons = buttonContainer.createDiv({ cls: "left-buttons" });
+        const leftButtons = buttonContainer.createDiv({ cls: "bluesky-left-buttons" });
         const addThreadBtn = leftButtons.createEl("button", { 
             text: "Add to thread",
-            cls: 'add-thread-btn',
+            cls: 'add-bluesky-thread-btn',
             attr: {
                 'aria-label': 'Add text to your first post to start a thread'
             }
@@ -177,7 +177,7 @@ export class BlueskyTab extends ItemView {
 
         const postButton = buttonContainer.createEl("button", { 
             text: this.isPosting ? "Posting..." : "Post",
-            cls: 'post-btn mod-primary'
+            cls: 'bluesky-post-btn mod-primary'
         });
         
         const hasValidFirstPost = this.posts[0]?.trim().length > 0;
