@@ -9,7 +9,7 @@ interface BlueskyPluginSettings {
     blueskyAppPassword: string;
 }
 
-const DEFAULT_SETTINGS: BlueskyPluginSettings = {
+const INITIAL_BLUESKY_SETTINGS: BlueskyPluginSettings = {
     blueskyIdentifier: '',
     blueskyAppPassword: ''
 }
@@ -34,7 +34,6 @@ export default class BlueskyPlugin extends Plugin {
         await this.loadSettings();
 
         // Add new command to post to Bluesky
-        // In the onload() method, update the post-to-bluesky command:
         this.addCommand({
             id: 'post-to-bluesky',
             name: 'Post to Bluesky',
@@ -76,7 +75,7 @@ export default class BlueskyPlugin extends Plugin {
     }
 
     async loadSettings() {
-        this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+        this.settings = Object.assign({}, INITIAL_BLUESKY_SETTINGS, await this.loadData());
     }
 
     async saveSettings() {
