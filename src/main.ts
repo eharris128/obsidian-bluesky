@@ -2,6 +2,7 @@ import { App, Editor, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian
 import { createBlueskyPost } from '@/bluesky';
 import { BlueskyTab } from '@/views/BlueskyTab';
 import { BLUESKY_TITLE, VIEW_TYPE_TAB } from '@/consts';
+import { setIcon } from "obsidian";
 
 interface BlueskyPluginSettings {
     blueskyIdentifier: string;
@@ -101,6 +102,10 @@ export default class BlueskyPlugin extends Plugin {
             type: VIEW_TYPE_TAB,
             active: true
         });
+    }
+
+    addIcon(element: HTMLElement, iconId: string) {
+        setIcon(element, iconId);
     }
 }
 

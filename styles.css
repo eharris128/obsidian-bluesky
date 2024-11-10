@@ -11,6 +11,7 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
+    position: relative;
 }
 
 .bluesky-compose textarea {
@@ -122,4 +123,20 @@
     cursor: not-allowed;
     background-color: var(--background-modifier-border);
     color: var(--text-muted);
+}
+
+.close-post {
+    position: absolute;
+    right: 5px;
+    top: 5px;
+    font-size: 18px;
+    cursor: pointer;
+    padding: 0 5px;
+    z-index: 1;
+    transition: box-shadow 0.2s ease;
+    &:hover {
+        color: var(--text-error);
+        box-shadow: 0 0 0 2px var(--background-modifier-border) !important;
+        border-radius: var(--radius-l);
+    }
 }

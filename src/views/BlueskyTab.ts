@@ -63,12 +63,19 @@ export class BlueskyTab extends ItemView {
         const container = this.containerEl.children[1];
         const buttonContainer = container.querySelector('.bluesky-buttons');
         
-        // Create new post container
+        // Create new post container with relative positioning
         const postContainer = container.createDiv({ cls: 'bluesky-compose' });
-        
-        // Insert before button container
         buttonContainer?.parentElement?.insertBefore(postContainer, buttonContainer);
-        
+        // Add close button
+        const closeBtn = postContainer.createEl("button", { 
+            cls: 'close-post',
+            attr: {
+                style: 'background: transparent; box-shadow: none;',
+            }
+        });
+        this.plugin.addIcon(closeBtn, 'lucide-x');
+        closeBtn.addEventListener('click', () => this.removePost(index));
+
         const textarea = postContainer.createEl("textarea", {
             attr: {
                 placeholder: "Continue thread...",
@@ -83,12 +90,6 @@ export class BlueskyTab extends ItemView {
             cls: 'char-counter',
             text: `0/${this.MAX_CHARS}`
         });
-
-        const removeBtn = postContainer.createEl("button", { 
-            cls: 'remove-post',
-            text: "Remove Post"
-        });
-        removeBtn.addEventListener('click', () => this.removePost(index));
     }
 
     private removePost(index: number) {
@@ -143,6 +144,14 @@ export class BlueskyTab extends ItemView {
         this.posts.forEach((post, index) => {
             const postContainer = container.createDiv({ cls: 'bluesky-compose' });
             
+            if (index > 0) {
+                const closeBtn = postContainer.createEl("button", { 
+                    cls: 'close-post'
+                });
+                this.plugin.addIcon(closeBtn, 'lucide-x');
+                closeBtn.addEventListener('click', () => this.removePost(index));
+            }
+
             const textarea = postContainer.createEl("textarea", {
                 attr: {
                     placeholder: index === 0 ? "What's on your mind?" : "Continue thread...",
@@ -157,14 +166,6 @@ export class BlueskyTab extends ItemView {
                 cls: 'char-counter',
                 text: `${post.length}/${this.MAX_CHARS}`
             });
-
-            if (index > 0) {
-                const removeBtn = postContainer.createEl("button", { 
-                    cls: 'remove-post',
-                    text: "Remove Post"
-                });
-                removeBtn.addEventListener('click', () => this.removePost(index));
-            }
         });
 
         const buttonContainer = container.createDiv({ cls: "bluesky-buttons" });
@@ -181,14 +182,6 @@ export class BlueskyTab extends ItemView {
         // Disable "Add to Thread" if first post is empty
         addThreadBtn.disabled = !this.posts[0]?.trim();
         addThreadBtn.addEventListener('click', () => this.addPost());
-
-        if (this.posts.length > 1) {
-            const removeBtn = leftButtons.createEl("button", { 
-                cls: 'remove-post',
-                text: "Remove Post"
-            });
-            removeBtn.addEventListener('click', () => this.removePost(this.posts.length - 1));
-        }
 
         const postButton = buttonContainer.createEl("button", { 
             text: this.isPosting ? "Posting..." : "Post",
