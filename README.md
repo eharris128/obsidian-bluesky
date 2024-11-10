@@ -17,6 +17,7 @@ A new `megaphone` icon will appear in the left sidebar after you install the plu
     - Click the `megaphone` icon to open a Bluesky tab.
     - Write your post or thread.
     - Click "Post" to post to Bluesky.
+- If you prefer to use the command palette, you can run the `Open Bluesky tab` command.
 
 ## Say Hi
 - [Bluesky](https://bsky.app/profile/evanharris.bsky.social)
