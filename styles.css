@@ -127,7 +127,7 @@
     color: var(--text-muted);
 }
 
-.close-post {
+.bluesky-close-post {
     position: absolute;
     right: 12px;
     top: 1px;

@@ -143,14 +143,6 @@ export class BlueskyTab extends ItemView {
         
         this.posts.forEach((post, index) => {
             const postContainer = container.createDiv({ cls: 'bluesky-compose' });
-            
-            if (index > 0) {
-                const closeBtn = postContainer.createEl("button", { 
-                    cls: 'close-post'
-                });
-                this.plugin.addIcon(closeBtn, 'lucide-x');
-                closeBtn.addEventListener('click', () => this.removePost(index));
-            }
 
             const textarea = postContainer.createEl("textarea", {
                 attr: {
