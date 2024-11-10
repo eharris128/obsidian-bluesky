@@ -18,7 +18,6 @@ export class BlueskyBot {
     })
   }
 
-  // TODO do not login each time
   async login(): Promise<void> {
     try {
       const { blueskyIdentifier, blueskyAppPassword } = this.plugin.settings
@@ -55,7 +54,6 @@ export class BlueskyBot {
     } catch (error) {
       console.error('Failed to post:', error)
       new Notice(`Failed to post: ${error.message}`);
-
       throw error
     }
   }

@@ -42,7 +42,6 @@ export class BlueskyTab extends ItemView {
             counter.textContent = `${limitedText.length}/${this.MAX_CHARS}`;
         }
 
-        // Update button states
         const addThreadBtn = this.containerEl.querySelector('.add-bluesky-thread-btn') as HTMLButtonElement;
         if (addThreadBtn) {
             addThreadBtn.disabled = !this.posts[0]?.trim();
@@ -63,10 +62,9 @@ export class BlueskyTab extends ItemView {
         const container = this.containerEl.children[1];
         const buttonContainer = container.querySelector('.bluesky-buttons');
         
-        // Create new post container with relative positioning
         const postContainer = container.createDiv({ cls: 'bluesky-compose' });
         buttonContainer?.parentElement?.insertBefore(postContainer, buttonContainer);
-        // Add close button
+
         const closeBtn = postContainer.createEl("button", { 
             cls: 'bluesky-close-post',
             attr: {
@@ -95,10 +93,8 @@ export class BlueskyTab extends ItemView {
     private removePost(index: number) {
         if (this.posts.length === 1) return;
         
-        // Remove from data
         this.posts.splice(index, 1);
         
-        // Remove from DOM
         const container = this.containerEl.children[1];
         const postContainers = container.querySelectorAll('.bluesky-compose');
         postContainers[index]?.remove();

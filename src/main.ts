@@ -20,10 +20,8 @@ export default class BlueskyPlugin extends Plugin {
     async activateBlueskyTab() {
         const { workspace } = this.app;
         
-        // Create a new leaf in the main workspace area
         const leaf = workspace.getLeaf(true);
         
-        // Set the view to the Bluesky tab
         await leaf.setViewState({
             type: VIEW_TYPE_TAB,
             active: true,
@@ -33,7 +31,6 @@ export default class BlueskyPlugin extends Plugin {
     async onload() {
         await this.loadSettings();
 
-        // Add new command to post to Bluesky
         this.addCommand({
             id: 'post-to-bluesky',
             name: 'Post to Bluesky',
@@ -64,14 +61,11 @@ export default class BlueskyPlugin extends Plugin {
             callback: () => this.openTab()
         });
 
-        // Add a ribbon icon to activate the view
         this.addRibbonIcon("megaphone", BLUESKY_TITLE, () => {
             this.activateBlueskyTab();
         });
 
-        // This adds a settings tab so the user can configure various aspects of the plugin
         this.addSettingTab(new BlueskySettingTab(this.app, this));
-
     }
 
     async loadSettings() {
