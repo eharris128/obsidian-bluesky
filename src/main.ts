@@ -1,5 +1,4 @@
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
-import { BlueskySidebar } from "@/views/BlueskySidebar";
 import { createBlueskyPost } from '@/bluesky';
 import { BlueskyTab } from '@/views/BlueskyTab';
 import { BLUESKY_TITLE, VIEW_TYPE_TAB, VIEW_TYPE_SIDEBAR } from '@/consts';
@@ -18,22 +17,17 @@ const DEFAULT_SETTINGS: MyPluginSettings = {
 export default class MyPlugin extends Plugin {
     settings: MyPluginSettings;
 
-    async activateSidebar() {
+    async activateBlueskyTab() {
         const { workspace } = this.app;
-
-        let leaf = workspace.getLeavesOfType(VIEW_TYPE_SIDEBAR)[0];
-
-        if (!leaf) {
-            const newLeaf = workspace.getRightLeaf(false);
-            if (!newLeaf) return; // Handle potential null
-            leaf = newLeaf;
-            await leaf.setViewState({
-                type: VIEW_TYPE_SIDEBAR,
-                active: true,
-            }); 3
-        }
-
-        workspace.revealLeaf(leaf);
+        
+        // Create a new leaf in the main workspace area
+        const leaf = workspace.getLeaf(true);
+        
+        // Set the view to the Bluesky tab
+        await leaf.setViewState({
+            type: VIEW_TYPE_TAB,
+            active: true,
+        });
     }
 
     async onload() {
@@ -96,23 +90,11 @@ export default class MyPlugin extends Plugin {
                 }
             }
         });
-
-        this.registerView(
-            VIEW_TYPE_SIDEBAR,
-            (leaf) => new BlueskySidebar(leaf, this)
-        );
-
         
         this.registerView(
             VIEW_TYPE_TAB,
             (leaf) => new BlueskyTab(leaf, this)
         );
-
-        this.addCommand({
-            id: 'open-bluesky-sidebar',
-            name: 'Open Bluesky Sidebar',
-            callback: () => this.activateSidebar()
-        });
 
         this.addCommand({
             id: 'open-bluesky-tab',
@@ -122,7 +104,7 @@ export default class MyPlugin extends Plugin {
 
         // Add a ribbon icon to activate the view
         this.addRibbonIcon("megaphone", BLUESKY_TITLE, () => {
-            this.activateSidebar();
+            this.activateBlueskyTab();
         });
 
         // This adds a settings tab so the user can configure various aspects of the plugin
@@ -139,7 +121,6 @@ export default class MyPlugin extends Plugin {
     }
 
     onunload() {
-        this.app.workspace.detachLeavesOfType(VIEW_TYPE_SIDEBAR);
         this.app.workspace.detachLeavesOfType(VIEW_TYPE_TAB);
     }
 
