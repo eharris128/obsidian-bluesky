@@ -68,9 +68,9 @@ export class BlueskyTab extends ItemView {
         buttonContainer?.parentElement?.insertBefore(postContainer, buttonContainer);
         // Add close button
         const closeBtn = postContainer.createEl("button", { 
-            cls: 'close-post',
+            cls: 'bluesky-close-post',
             attr: {
-                style: 'background: transparent; box-shadow: none;',
+                'aria-label': 'Remove this post from the thread'
             }
         });
         this.plugin.addIcon(closeBtn, 'lucide-x');
