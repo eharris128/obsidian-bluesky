@@ -90,6 +90,7 @@ export class BlueskyBot {
       }
       lastPost = { uri: result.uri, cid: result.cid }
     }
+    new Notice('Successfully posted to Bluesky!');
   }
 }
 
