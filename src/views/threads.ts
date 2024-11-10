@@ -1,6 +1,6 @@
 import { ItemView, WorkspaceLeaf } from 'obsidian';
 import { BlueskyBot } from '@/bluesky';
-import type MyPlugin from '@/main'
+import type BlueskyPlugin from '@/main'
 
 
 export class ThreadsView extends ItemView {
@@ -10,7 +10,7 @@ export class ThreadsView extends ItemView {
   private isPosting: boolean = false;
   private readonly MAX_CHARS = 300;
 
-  constructor(leaf: WorkspaceLeaf, plugin: MyPlugin) {
+  constructor(leaf: WorkspaceLeaf, plugin: BlueskyPlugin) {
     super(leaf);
     this.bot = new BlueskyBot(plugin);
   }

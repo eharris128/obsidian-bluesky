@@ -2,20 +2,19 @@ import { App, Editor, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian
 import { createBlueskyPost } from '@/bluesky';
 import { BlueskyTab } from '@/views/BlueskyTab';
 import { BLUESKY_TITLE, VIEW_TYPE_TAB } from '@/consts';
-// Remember to rename these classes and interfaces!
 
-interface MyPluginSettings {
+interface BlueskyPluginSettings {
     blueskyIdentifier: string;
     blueskyAppPassword: string;
 }
 
-const DEFAULT_SETTINGS: MyPluginSettings = {
+const DEFAULT_SETTINGS: BlueskyPluginSettings = {
     blueskyIdentifier: '',
     blueskyAppPassword: ''
 }
 
-export default class MyPlugin extends Plugin {
-    settings: MyPluginSettings;
+export default class BlueskyPlugin extends Plugin {
+    settings: BlueskyPluginSettings;
 
     async activateBlueskyTab() {
         const { workspace } = this.app;
@@ -106,9 +105,9 @@ export default class MyPlugin extends Plugin {
 }
 
 class SampleSettingTab extends PluginSettingTab {
-    plugin: MyPlugin;
+    plugin: BlueskyPlugin;
 
-    constructor(app: App, plugin: MyPlugin) {
+    constructor(app: App, plugin: BlueskyPlugin) {
         super(app, plugin);
         this.plugin = plugin;
     }

@@ -1,16 +1,16 @@
 import { ItemView, WorkspaceLeaf } from "obsidian";
 import { BlueskyBot } from '@/bluesky';
-import type MyPlugin from '@/main';
+import type BlueskyPlugin from '@/main';
 import { BLUESKY_TITLE, VIEW_TYPE_TAB } from '@/consts';
 
 export class BlueskyTab extends ItemView {
-    private readonly plugin: MyPlugin;
+    private readonly plugin: BlueskyPlugin;
     private bot: BlueskyBot;
     private posts: string[] = [''];
     private isPosting: boolean = false;
     private readonly MAX_CHARS = 300;
 
-    constructor(leaf: WorkspaceLeaf, plugin: MyPlugin) {
+    constructor(leaf: WorkspaceLeaf, plugin: BlueskyPlugin) {
         super(leaf);
         this.plugin = plugin;
         this.bot = new BlueskyBot(plugin);

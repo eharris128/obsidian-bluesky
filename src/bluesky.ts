@@ -1,5 +1,5 @@
 import { AtpAgent, RichText } from '@atproto/api'
-import type MyPlugin from '@/main'
+import type BlueskyPlugin from '@/main'
 
 interface ThreadPost {
   text: string
@@ -8,9 +8,9 @@ interface ThreadPost {
 
 export class BlueskyBot {
   private agent: AtpAgent
-  private plugin: MyPlugin
+  private plugin: BlueskyPlugin
 
-  constructor(plugin: MyPlugin) {
+  constructor(plugin: BlueskyPlugin) {
     this.plugin = plugin
     this.agent = new AtpAgent({
       service: 'https://bsky.social',
@@ -85,7 +85,7 @@ export class BlueskyBot {
   }
 }
 
-export async function createBlueskyPost(plugin: MyPlugin, text: string): Promise<void> {
+export async function createBlueskyPost(plugin: BlueskyPlugin, text: string): Promise<void> {
   const bot = new BlueskyBot(plugin)
   try {
     await bot.login()
