@@ -1,7 +1,7 @@
 {
 	"id": "bluesky",
 	"name": "Bluesky",
-	"version": "1.0.2", 
+	"version": "1.0.3", 
 	"minAppVersion": "0.15.0",
 	"description": "Post to Bluesky.",
 	"author": "eharris128",
