@@ -37,14 +37,18 @@ export class BlueskyBot {
 
   async createPost(text: string): Promise<void> {
     try {
-      // TODO - fix
-      await this.agent.api.app.bsky.feed.post.create(
-        { repo: this.agent.session?.did },
-        {
+      if (!this.agent.session?.did) {
+        throw new Error('Not logged in')
+      }
+      
+      await this.agent.com.atproto.repo.createRecord({
+        repo: this.agent.session.did,
+        collection: 'app.bsky.feed.post',
+        record: {
           text,
           createdAt: new Date().toISOString(),
         }
-      )
+      })
       console.log('Successfully posted to Bluesky')
     } catch (error) {
       console.error('Failed to post:', error)
