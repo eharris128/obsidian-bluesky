@@ -1,6 +1,6 @@
 {
 	"name": "obsidian-bluesky",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"description": "Bluesky - Obsidian Plugin | Post to Bluesky from Obsidian ",
 	"main": "main.js",
 	"scripts": {
