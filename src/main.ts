@@ -75,10 +75,6 @@ export default class BlueskyPlugin extends Plugin {
 
     }
 
-    onunload() {
-        this.app.workspace.detachLeavesOfType(VIEW_TYPE_TAB);
-    }
-
     async loadSettings() {
         this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
     }
