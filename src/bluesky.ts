@@ -21,7 +21,6 @@ export class BlueskyBot {
   async login(): Promise<void> {
     try {
       const { blueskyIdentifier, blueskyAppPassword } = this.plugin.settings
-      console.log("woo")
       if (!blueskyIdentifier || !blueskyAppPassword) {
         throw new Error('Missing Bluesky credentials - please configure them in settings')
       }
@@ -38,6 +37,7 @@ export class BlueskyBot {
 
   async createPost(text: string): Promise<void> {
     try {
+      // TODO - fix
       await this.agent.api.app.bsky.feed.post.create(
         { repo: this.agent.session?.did },
         {
