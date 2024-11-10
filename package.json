@@ -1,7 +1,7 @@
 {
 	"name": "obsidian-bluesky",
 	"version": "1.0.1",
-	"description": "Bluesky - Obsidian Plugin | Post to Bluesky from Obsidian ",
+	"description": "Post to Bluesky.",
 	"main": "main.js",
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
