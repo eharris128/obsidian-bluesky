@@ -50,7 +50,6 @@ export class BlueskyBot {
           createdAt: new Date().toISOString(),
         }
       })
-      console.log('Successfully posted to Bluesky')
       new Notice('Successfully posted to Bluesky!');
 
     } catch (error) {

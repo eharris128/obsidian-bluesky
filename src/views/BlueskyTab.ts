@@ -162,7 +162,7 @@ export class BlueskyTab extends ItemView {
             });
             textarea.addEventListener('input', (e) => this.handlePostChange(index, e));
 
-            const counterDiv = postContainer.createDiv({ 
+            postContainer.createDiv({ 
                 cls: 'char-counter',
                 text: `${post.length}/${this.MAX_CHARS}`
             });

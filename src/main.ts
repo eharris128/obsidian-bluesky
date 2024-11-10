@@ -60,7 +60,7 @@ export default class BlueskyPlugin extends Plugin {
 
         this.addCommand({
             id: 'open-bluesky-tab',
-            name: 'Open Bluesky Tab',
+            name: 'Open Bluesky tab',
             callback: () => this.openTab()
         });
 
