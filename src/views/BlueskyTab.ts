@@ -172,7 +172,7 @@ export class BlueskyTab extends ItemView {
         
         const leftButtons = buttonContainer.createDiv({ cls: "left-buttons" });
         const addThreadBtn = leftButtons.createEl("button", { 
-            text: "Add to Thread",
+            text: "Add to thread",
             cls: 'add-thread-btn',
             attr: {
                 'aria-label': 'Add text to your first post to start a thread'

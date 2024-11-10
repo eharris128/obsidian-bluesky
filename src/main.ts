@@ -113,7 +113,6 @@ class BlueskySettingTab extends PluginSettingTab {
         const { containerEl } = this;
         containerEl.empty();
 
-        containerEl.createEl('h3', { text: 'Bluesky Settings' });
         containerEl.createEl('p', {
             text: 'To get your app password:',
         });
@@ -130,7 +129,7 @@ class BlueskySettingTab extends PluginSettingTab {
         steps.createEl('li', { text: 'Copy the generated password' });
 
         new Setting(containerEl)
-            .setName('Bluesky Identifier')
+            .setName('Bluesky identifier')
             .setDesc('Your Bluesky handle or email (required)')
             .addText(text => text
                 .setPlaceholder('handle.bsky.social')
@@ -141,7 +140,7 @@ class BlueskySettingTab extends PluginSettingTab {
                 }));
 
         new Setting(containerEl)
-            .setName('Bluesky App Password')
+            .setName('Bluesky app password')
             .setDesc('Your Bluesky app password (required)')
             .addText(text => text
                 .setPlaceholder('Enter app password')
