@@ -30,7 +30,6 @@ export class BlueskyBot {
         identifier: blueskyIdentifier,
         password: blueskyAppPassword
       })
-      console.log('Successfully logged in to Bluesky')
     } catch (error) {
       console.error('Failed to login:', error)
       throw error
