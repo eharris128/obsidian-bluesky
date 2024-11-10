@@ -79,7 +79,7 @@ export class BlueskyBot {
         }
       }
     
-      const result: any = await this.agent.post({
+      const result: {uri: string; cid: string} = await this.agent.post({
         text: post.text,
         reply: post.reply,
         facets: rt.facets,
