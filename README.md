@@ -21,3 +21,9 @@ A new `megaphone` icon will appear in the left sidebar after you install the plu
 
 ## Say Hi
 - [Bluesky](https://bsky.app/profile/evanharris.bsky.social)
+
+## Attribution
+
+This project builds upon the [Bluesky AT Protocol](https://github.com/bluesky-social/atproto), which is licensed under the [MIT License](https://opensource.org/licenses/MIT).
+
+The source code of this project includes parts of the Bluesky AT Protocol, following the MIT License requirements.
