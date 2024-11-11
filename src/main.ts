@@ -33,7 +33,7 @@ export default class BlueskyPlugin extends Plugin {
 
         this.addCommand({
             id: 'post-to-bluesky',
-            name: 'Post to Bluesky',
+            name: 'Post highlighted text',
             editorCallback: async (editor: Editor) => {
                 const selectedText = editor.getSelection();
                 if (!selectedText) {
@@ -57,7 +57,7 @@ export default class BlueskyPlugin extends Plugin {
 
         this.addCommand({
             id: 'open-bluesky-tab',
-            name: 'Open Bluesky tab',
+            name: 'Open tab',
             callback: () => this.openTab()
         });
 
