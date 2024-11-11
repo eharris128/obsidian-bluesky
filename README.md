@@ -1,5 +1,5 @@
 # Bluesky Plugin
-- Post to Bluesky from Obsidian
+- Post to Bluesky via a Tab view or by highlighting text
 
 ## Usage Guide
 
