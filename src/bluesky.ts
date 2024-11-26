@@ -41,13 +41,11 @@ export class BlueskyBot {
         throw new Error('Not logged in')
       }
       
-      await this.agent.com.atproto.repo.createRecord({
-        repo: this.agent.session.did,
-        collection: 'app.bsky.feed.post',
-        record: {
-          text,
-          createdAt: new Date().toISOString(),
-        }
+      const richText = new RichText({ text })
+      await richText.detectFacets(this.agent)
+      await this.agent.post({
+        text: richText.text,
+        facets: richText.facets,
       })
       new Notice('Successfully posted to Bluesky!');
 
