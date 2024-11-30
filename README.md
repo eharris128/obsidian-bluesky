@@ -22,12 +22,6 @@ A new `megaphone` icon will appear in the left sidebar after you install the plu
 ## Say Hi
 - [Bluesky](https://bsky.app/profile/evanharris.bsky.social)
 
-## How to Create A Thread - Video
-<video width="100%" controls>
-  <source src="How_To_Create_A_Thread.mp4" type="video/mp4">
-  Your browser does not support the video tag.
-</video>
-
 ## Attribution
 
 This project builds upon the [Bluesky AT Protocol](https://github.com/bluesky-social/atproto), which is licensed under the [MIT License](https://opensource.org/licenses/MIT).
