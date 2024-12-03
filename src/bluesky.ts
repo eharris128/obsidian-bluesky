@@ -35,7 +35,7 @@ export class BlueskyBot {
     }
   }
 
-  async createPost(text: string): Promise<void> {
+  async createPost(text: string): Promise<boolean> {
     try {
       if (!this.agent.session?.did) {
         throw new Error('Not logged in')
@@ -48,16 +48,20 @@ export class BlueskyBot {
         facets: richText.facets,
       })
       new Notice('Successfully posted to Bluesky!');
-
+      return true
     } catch (error) {
       console.error('Failed to post:', error)
-      new Notice(`Failed to post: ${error.message}`);
+      if (error.message.includes('Failed to fetch')) {
+        new Notice('Could not connect to the internet.')
+      } else {
+        new Notice(`Failed to post: ${error.message}`);
+      }
       throw error
     }
   }
 
-  async createThread(posts: string[]): Promise<void> {
-    if (!posts.length) return
+  async createThread(posts: string[]): Promise<boolean> {
+    if (!posts.length) return false
     
     let lastPost: { uri: string; cid: string } | null = null
     let rootPost: { uri: string; cid: string } | null = null
@@ -87,6 +91,7 @@ export class BlueskyBot {
       lastPost = { uri: result.uri, cid: result.cid }
     }
     new Notice('Successfully posted to Bluesky!');
+    return true
   }
 }
 

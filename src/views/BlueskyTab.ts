@@ -1,4 +1,4 @@
-import { ItemView, WorkspaceLeaf } from "obsidian";
+import { ItemView, Notice, WorkspaceLeaf } from "obsidian";
 import { BlueskyBot } from '@/bluesky';
 import type BlueskyPlugin from '@/main';
 import { BLUESKY_TITLE, VIEW_TYPE_TAB } from '@/consts';
@@ -113,24 +113,25 @@ export class BlueskyTab extends ItemView {
 
         const validPosts = this.posts.filter(post => post.trim());
         if (!validPosts.length) return;
-
+        let success = false
         try {
             this.isPosting = true;
-            this.display();
-
             await this.bot.login();
             if (validPosts.length === 1) {
-                await this.bot.createPost(validPosts[0]);
+                success = await this.bot.createPost(validPosts[0]);
             } else {
-                await this.bot.createThread(validPosts);
+                success = await this.bot.createThread(validPosts);
             }
-
+3
             this.posts = [''];
         } catch (error) {
             console.error('Failed to post:', error);
+            if (error.message.includes('Failed to fetch')) {
+                new Notice('Failed to post. Could not connect to the internet.')
+            }
         } finally {
             this.isPosting = false;
-            this.display();
+            if (success) this.display();
         }
     }
 
