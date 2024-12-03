@@ -43,7 +43,6 @@ export default class BlueskyPlugin extends Plugin {
 
                 try {
                     await createBlueskyPost(this, selectedText);
-                    new Notice('Successfully posted to Bluesky!');
                 } catch (error) {
                     new Notice(`Failed to post: ${error.message}`);
                 }
