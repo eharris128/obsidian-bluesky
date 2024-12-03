@@ -44,7 +44,13 @@ export default class BlueskyPlugin extends Plugin {
                 try {
                     await createBlueskyPost(this, selectedText);
                 } catch (error) {
-                    new Notice(`Failed to post: ${error.message}`);
+                    if (error.message.includes('Failed to fetch')) {
+                        new Notice('Failed to post. Could not connect to the internet.')
+                      } else if (error.message.includes('Invalid identifier or password')) {
+                        new Notice('Invalid bluesky handle or password. Please check your bluesky plugin settings.')
+                      } else {
+                        new Notice(`Failed to post: ${error.message}`);
+                      }
                 }
             }
         });

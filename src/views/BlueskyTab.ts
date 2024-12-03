@@ -122,12 +122,15 @@ export class BlueskyTab extends ItemView {
             } else {
                 success = await this.bot.createThread(validPosts);
             }
-3
             this.posts = [''];
         } catch (error) {
             console.error('Failed to post:', error);
             if (error.message.includes('Failed to fetch')) {
                 new Notice('Failed to post. Could not connect to the internet.')
+            } else if (error.message.includes('Invalid identifier or password')) {
+                new Notice('Invalid bluesky handle or password. Please check your bluesky plugin settings.')
+            } else {
+                new Notice(`Failed to post: ${error.message}`);
             }
         } finally {
             this.isPosting = false;
