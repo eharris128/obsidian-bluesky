@@ -22,9 +22,10 @@ A new `megaphone` icon will appear in the left sidebar after you install the plu
 ## Say Hi
 - [Bluesky](https://bsky.app/profile/evanharris.bsky.social)
 
-## Not Yet Supported
+## Roadmap
 - Media
 - Embeds
+- Posting threads from within a file
 - Language specification
 
 ## Attribution
