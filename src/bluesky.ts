@@ -18,8 +18,46 @@ export class BlueskyBot {
     })
   }
 
+  async getFeedGenerators(): Promise<any> {
+    try {
+      await this.login()
+      if (!this.agent.session?.did) {
+        throw new Error('Not logged in')
+      }
+
+      const response = await this.agent.api.app.bsky.feed.getFeedGenerators({
+        feeds: [
+          'at://did:plc:z72i7hdynmk6r22z27h6tvur/app.bsky.feed.generator/whats-hot',
+          // 'at://did:plc:z72i7hdynmk6r22z27h6tvur/app.bsky.feed.generator/tech',
+          'at://did:plc:jfhpnnst6flqway4eaeqzj2a/app.bsky.feed.generator/for-science',
+          // 'at://did:plc:z72i7hdynmk6r22z27h6tvur/app.bsky.feed.generator/with-friends',
+          'at://did:plc:z72i7hdynmk6r22z27h6tvur/app.bsky.feed.generator/hot-classic'
+        ]
+      })
+      
+      return response.data
+    } catch (error) {
+      console.error('Failed to fetch feed generators:', error)
+      throw error
+    }
+  }
+
+  async getFeed(feedUri: string): Promise<any> {
+    try {
+      const response = await this.agent.api.app.bsky.feed.getFeed({
+        feed: feedUri
+      })
+      return response.data
+    } catch (error) {
+      console.error('Failed to fetch feed:', error)
+      throw error
+    }
+  }
+
   async login(): Promise<void> {
     try {
+
+
       const { blueskyIdentifier, blueskyAppPassword } = this.plugin.settings
       if (!blueskyIdentifier || !blueskyAppPassword) {
         new Notice('Not logged in. Go to the Bluesky plugin settings to login.');

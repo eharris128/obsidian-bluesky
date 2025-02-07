@@ -1,7 +1,8 @@
 import { App, Editor, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
 import { createBlueskyPost } from '@/bluesky';
 import { BlueskyTab } from '@/views/BlueskyTab';
-import { BLUESKY_TITLE, VIEW_TYPE_TAB } from '@/consts';
+import { BlueskyFeeds } from '@/views/BlueskyFeeds';
+import { BLUESKY_TITLE, VIEW_TYPE_TAB, VIEW_TYPE_FEEDS } from '@/consts';
 import { setIcon } from "obsidian";
 
 interface BlueskyPluginSettings {
@@ -16,6 +17,17 @@ const INITIAL_BLUESKY_SETTINGS: BlueskyPluginSettings = {
 
 export default class BlueskyPlugin extends Plugin {
     settings: BlueskyPluginSettings;
+
+    async activateBlueskyFeeds() {
+        const { workspace } = this.app;
+        
+        const leaf = workspace.getLeaf(true);
+        
+        await leaf.setViewState({
+            type: VIEW_TYPE_FEEDS,
+            active: true,
+        });
+    }
 
     async activateBlueskyTab() {
         const { workspace } = this.app;
@@ -60,14 +72,29 @@ export default class BlueskyPlugin extends Plugin {
             (leaf) => new BlueskyTab(leaf, this)
         );
 
+        this.registerView(
+            VIEW_TYPE_FEEDS,
+            (leaf) => new BlueskyFeeds(leaf, this)
+        );
+
         this.addCommand({
             id: 'open-bluesky-tab',
             name: 'Open tab',
             callback: () => this.openTab()
         });
 
+        this.addCommand({
+            id: 'open-bluesky-feeds',
+            name: 'Open feeds',
+            callback: () => this.openFeeds()
+        });
+
         this.addRibbonIcon("megaphone", BLUESKY_TITLE, () => {
             this.activateBlueskyTab();
+        });
+
+        this.addRibbonIcon("apple", BLUESKY_TITLE, () => {
+            this.activateBlueskyFeeds();
         });
 
         this.addSettingTab(new BlueskySettingTab(this.app, this));
@@ -86,6 +113,15 @@ export default class BlueskyPlugin extends Plugin {
         
         await workspace.getLeaf(true).setViewState({
             type: VIEW_TYPE_TAB,
+            active: true
+        });
+    }
+
+    async openFeeds() {
+        const { workspace } = this.app;
+        
+        await workspace.getLeaf(true).setViewState({
+            type: VIEW_TYPE_FEEDS,
             active: true
         });
     }
