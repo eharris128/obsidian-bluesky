@@ -30,10 +30,16 @@ export class BlueskyBot {
         throw new Error('Not logged in')
       }
 
+      // did:web:skyfeed.me -> 
+      
       const response = await this.agent.api.app.bsky.feed.getFeedGenerators({
         feeds: [
-          'at://did:plc:z72i7hdynmk6r22z27h6tvur/app.bsky.feed.generator/whats-hot',
+          // 'at://did:plc:z72i7hdynmk6r22z27h6tvur/app.bsky.feed.generator/whats-hot',
           // 'at://did:plc:z72i7hdynmk6r22z27h6tvur/app.bsky.feed.generator/tech',
+          // 'at://did:plc:nubczgdb7tau5ebpgdieab76/feed/aaaonssncq7u6',
+          'at://did:plc:nubczgdb7tau5ebpgdieab76/app.bsky.feed.generator/aaaonssncq7u6',
+
+          // 'at://did:plc:nubczgdb7tau5ebpgdieab76/app.bsky.feed.generator/aloha',
           'at://did:plc:jfhpnnst6flqway4eaeqzj2a/app.bsky.feed.generator/for-science',
           // 'at://did:plc:z72i7hdynmk6r22z27h6tvur/app.bsky.feed.generator/with-friends',
           'at://did:plc:z72i7hdynmk6r22z27h6tvur/app.bsky.feed.generator/hot-classic'
