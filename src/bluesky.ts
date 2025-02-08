@@ -7,6 +7,11 @@ interface ThreadPost {
   reply?: { root: { uri: string; cid: string }, parent: { uri: string; cid: string } }
 }
 
+interface PostLike {
+  uri: string;
+  cid: string;
+}
+
 export class BlueskyBot {
   private agent: AtpAgent
   private plugin: BlueskyPlugin
@@ -130,6 +135,56 @@ export class BlueskyBot {
     }
     new Notice('Successfully posted to Bluesky!');
     return true
+  }
+
+  async likePost(post: PostLike): Promise<void> {
+    try {
+      if (!this.agent.session?.did) {
+        throw new Error('Not logged in')
+      }
+
+      const isLiked = await this.isPostLiked(post.uri);
+      
+      if (isLiked) {
+        // Generate the rkey for the like - it's a hash of the post URI
+        const rkey = `${post.uri.split('/').pop()}`;
+        
+        // Unlike using deleteRecord
+        await this.agent.api.com.atproto.repo.deleteRecord({
+          collection: 'app.bsky.feed.like',
+          repo: this.agent.session.did,
+          rkey: rkey
+        });
+        return;
+      }
+      // Like the post
+      await this.agent.api.app.bsky.feed.like.create(
+        { repo: this.agent.session.did },
+        {
+          subject: {
+            uri: post.uri,
+            cid: post.cid
+          },
+          createdAt: new Date().toISOString(),
+          rkey: `${post.uri.split('/').pop()}`  // Use consistent rkey for later deletion
+        }
+      )
+    } catch (error) {
+      console.error('Failed to like/unlike post:', error)
+      throw error
+    }
+  }
+
+  async isPostLiked(postUri: string): Promise<boolean> {
+    try {
+      if (!this.agent.session?.did) return false;
+      
+      const existing = await this.agent.api.app.bsky.feed.getLikes({ uri: postUri });
+      return existing.data.likes.some(like => like.actor.did === this.agent.session?.did);
+    } catch (error) {
+      console.error('Failed to check like status:', error);
+      return false;
+    }
   }
 }
 

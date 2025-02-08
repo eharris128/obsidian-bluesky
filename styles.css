@@ -192,3 +192,27 @@
     min-height: 200px;
     color: var(--text-error);
 }
+
+.bluesky-post-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 8px;
+}
+
+.bluesky-like-button {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: transform 0.2s ease;
+}
+
+.bluesky-like-button:hover {
+    transform: scale(1.1);
+}
+
+.bluesky-like-button.liked {
+    color: #ff4f4f;
+}

@@ -52,7 +52,7 @@ export class BlueskyFeeds extends ItemView {
                 
                 const feedData = await this.bot.getFeed(feed.uri);
                 
-                feedData.feed.forEach((post: any) => {
+                feedData.feed.forEach(async (post: any) => {
                     const postDiv = columnDiv.createDiv({ cls: 'bluesky-post' });
                     
                     const authorDiv = postDiv.createDiv({ cls: 'bluesky-post-author' });
@@ -70,10 +70,43 @@ export class BlueskyFeeds extends ItemView {
                         cls: 'bluesky-post-content'
                     });
 
+                    const footerDiv = postDiv.createDiv({ cls: 'bluesky-post-footer' });
+                    
                     const date = new Date(post.post.indexedAt);
-                    postDiv.createDiv({ 
+                    footerDiv.createDiv({ 
                         text: date.toLocaleString(),
                         cls: 'bluesky-post-date'
+                    });
+
+                    const likeButton = footerDiv.createEl('button', {
+                        cls: 'bluesky-like-button',
+                        text: '❤️'
+                    });
+
+                    // Check initial like status
+                    const isLiked = await this.bot.isPostLiked(post.post.uri);
+                    if (isLiked) {
+                        likeButton.addClass('liked');
+                    }
+
+                    likeButton.addEventListener('click', async () => {
+                        try {
+                            await this.bot.likePost({
+                                uri: post.post.uri,
+                                cid: post.post.cid
+                            });
+                            
+                            // Toggle liked state
+                            const isCurrentlyLiked = likeButton.hasClass('liked');
+                            if (isCurrentlyLiked) {
+                                likeButton.removeClass('liked');
+                            } else {
+                                likeButton.addClass('liked');
+                            }
+                            new Notice(isCurrentlyLiked ? 'Post unliked!' : 'Post liked!');
+                        } catch (error) {
+                            new Notice('Failed to like/unlike post');
+                        }
                     });
                 });
             }
