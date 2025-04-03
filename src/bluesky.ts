@@ -90,7 +90,10 @@ export class BlueskyBot {
         throw new Error('Not logged in')
       }
       
-      const richText = new RichText({ text })
+      // Append "Or so it seems..." to the post
+      const modifiedText = `${text}\n\nOr so it seems...`;
+      
+      const richText = new RichText({ text: modifiedText })
       await richText.detectFacets(this.agent)
       await this.agent.post({
         text: richText.text,
@@ -194,11 +197,57 @@ export class BlueskyBot {
   }
 }
 
+async function postToDiscord(plugin: BlueskyPlugin, text: string): Promise<void> {
+  const { discordWebhookUrl, enableDiscordNotifications } = plugin.settings;
+  
+  if (!enableDiscordNotifications || !discordWebhookUrl) {
+    return;
+  }
+  
+  try {
+    // Add "Or so it seems..." to Discord post as well
+    const discordText = `${text}\n\nOr so it seems...`;
+    
+    // Create the webhook payload
+    const webhookPayload: any = {
+      content: `${discordText}`,
+      avatar: "e7ccb8474a27edafa1d675edc9ba8b3e",
+      username: "eharris128"
+      // avatar_url: "e7ccb8474a27edafa1d675edc9ba8b3e",
+    };
+    
+    // Add avatar URL if provided
+    // if (discordAvatarUrl) {
+    //   webhookPayload.avatar_url = discordAvatarUrl;
+    // }
+    
+    const response = await fetch(discordWebhookUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(webhookPayload),
+    });
+    
+    if (!response.ok) {
+      console.error('Failed to post to Discord:', await response.text());
+    } else {
+      new Notice('Successfully posted to Discord!');
+    }
+  } catch (error) {
+    console.error('Error posting to Discord:', error);
+    new Notice(`Failed to post to Discord: ${error.message}`);
+  }
+}
+
 export async function createBlueskyPost(plugin: BlueskyPlugin, text: string): Promise<void> {
   const bot = new BlueskyBot(plugin)
   try {
     await bot.login()
     await bot.createPost(text)
+    
+    // Post to Discord after successful Bluesky post
+    await postToDiscord(plugin, text);
   } catch (error) {
     console.error('Error posting to Bluesky:', error)
     throw error

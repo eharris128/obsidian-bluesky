@@ -119,6 +119,43 @@ export class BlueskyTab extends ItemView {
             await this.bot.login();
             if (validPosts.length === 1) {
                 success = await this.bot.createPost(validPosts[0]);
+                
+                // Post to Discord if enabled (only for single posts)
+                const { discordWebhookUrl, enableDiscordNotifications, discordAvatarUrl } = this.plugin.settings;
+                if (enableDiscordNotifications && discordWebhookUrl) {
+                    try {
+                        // Add "Or so it seems..." to Discord post
+                        const discordText = `${validPosts[0]}\n\nOr so it seems...`;
+                        
+                        // Create the webhook payload
+                        const webhookPayload: any = {
+                            content: `New Bluesky post:\n${discordText}`,
+                            username: 'eharris128',
+                        };
+                        
+                        // Add avatar URL if provided
+                        if (discordAvatarUrl) {
+                            webhookPayload.avatar_url = discordAvatarUrl;
+                        }
+                        
+                        const response = await fetch(discordWebhookUrl, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify(webhookPayload),
+                        });
+                        
+                        if (response.ok) {
+                            new Notice('Successfully posted to Discord!');
+                        } else {
+                            console.error('Failed to post to Discord:', await response.text());
+                        }
+                    } catch (error) {
+                        console.error('Error posting to Discord:', error);
+                        new Notice(`Failed to post to Discord: ${error.message}`);
+                    }
+                }
             } else {
                 success = await this.bot.createThread(validPosts);
             }

@@ -8,11 +8,17 @@ import { setIcon } from "obsidian";
 interface BlueskyPluginSettings {
     blueskyIdentifier: string;
     blueskyAppPassword: string;
+    discordWebhookUrl: string;
+    enableDiscordNotifications: boolean;
+    discordAvatarUrl: string;
 }
 
 const INITIAL_BLUESKY_SETTINGS: BlueskyPluginSettings = {
     blueskyIdentifier: '',
-    blueskyAppPassword: ''
+    blueskyAppPassword: '',
+    discordWebhookUrl: '',
+    enableDiscordNotifications: false,
+    discordAvatarUrl: 'https://cdn.bsky.app/img/avatar/plain/did:plc:z72i7hdynmk6r22z27h6tvur/bafkreih5cd5cta7zuysbsv5moihorugt6gnfwv43dhzrhhcx6wxgpxsph4@jpeg'
 }
 
 export default class BlueskyPlugin extends Plugin {
@@ -178,6 +184,40 @@ class BlueskySettingTab extends PluginSettingTab {
                 .setValue(this.plugin.settings.blueskyAppPassword)
                 .onChange(async (value) => {
                     this.plugin.settings.blueskyAppPassword = value;
+                    await this.plugin.saveSettings();
+                }));
+
+        containerEl.createEl('h3', { text: 'Discord Integration' });
+        
+        new Setting(containerEl)
+            .setName('Discord Webhook URL')
+            .setDesc('Discord webhook URL for cross-posting (optional)')
+            .addText(text => text
+                .setPlaceholder('https://discord.com/api/webhooks/...')
+                .setValue(this.plugin.settings.discordWebhookUrl)
+                .onChange(async (value) => {
+                    this.plugin.settings.discordWebhookUrl = value;
+                    await this.plugin.saveSettings();
+                }));
+        
+        new Setting(containerEl)
+            .setName('Enable Discord notifications')
+            .setDesc('Send posts to Discord when posting to Bluesky')
+            .addToggle(toggle => toggle
+                .setValue(this.plugin.settings.enableDiscordNotifications)
+                .onChange(async (value) => {
+                    this.plugin.settings.enableDiscordNotifications = value;
+                    await this.plugin.saveSettings();
+                }));
+                
+        new Setting(containerEl)
+            .setName('Discord Avatar URL')
+            .setDesc('URL for the avatar to use with Discord messages (optional)')
+            .addText(text => text
+                .setPlaceholder('https://example.com/avatar.png')
+                .setValue(this.plugin.settings.discordAvatarUrl)
+                .onChange(async (value) => {
+                    this.plugin.settings.discordAvatarUrl = value;
                     await this.plugin.saveSettings();
                 }));
     }
