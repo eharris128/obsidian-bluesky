@@ -4,6 +4,7 @@ import { BlueskyTab } from '@/views/BlueskyTab';
 import { BlueskyFeeds } from '@/views/BlueskyFeeds';
 import { BLUESKY_TITLE, VIEW_TYPE_TAB, VIEW_TYPE_FEEDS } from '@/consts';
 import { setIcon } from "obsidian";
+import { getStyles, initMCPClient } from './mcpClient';
 
 interface BlueskyPluginSettings {
     blueskyIdentifier: string;
@@ -49,6 +50,9 @@ export default class BlueskyPlugin extends Plugin {
     async onload() {
         await this.loadSettings();
 
+        // Initialize MCP client first
+        await initMCPClient();
+
         this.addCommand({
             id: 'post-to-bluesky',
             name: 'Post highlighted text',
@@ -60,15 +64,15 @@ export default class BlueskyPlugin extends Plugin {
                 }
 
                 try {
-                    await createBlueskyPost(this, selectedText);
+                    await this.post(selectedText);
                 } catch (error) {
                     if (error.message.includes('Failed to fetch')) {
                         new Notice('Failed to post. Could not connect to the internet.')
-                      } else if (error.message.includes('Invalid identifier or password')) {
+                    } else if (error.message.includes('Invalid identifier or password')) {
                         new Notice('Invalid bluesky handle or password. Please check your bluesky plugin settings.')
-                      } else {
+                    } else {
                         new Notice(`Failed to post: ${error.message}`);
-                      }
+                    }
                 }
             }
         });
@@ -134,6 +138,80 @@ export default class BlueskyPlugin extends Plugin {
 
     addIcon(element: HTMLElement, iconId: string) {
         setIcon(element, iconId);
+    }
+
+    // Helper function to apply styles to text
+    applyStyles(text: string, styles: any): string {
+        // Get the text from the styles
+        if (styles?.contents?.[0]?.text) {
+            return `${text} ${styles.contents[0].text}`;
+        }
+        // Fallback to original text if no style text is found
+        return text;
+    }
+
+    async post(text: string) {
+        try {
+            // Post to both platforms
+            const promises = [];
+
+            // Post to Bluesky
+            if (this.settings.blueskyIdentifier && this.settings.blueskyAppPassword) {
+                const blueskyStyles = getStyles('bluesky');
+                if (blueskyStyles) {
+                    const blueskyText = this.applyStyles(text, blueskyStyles);
+                    promises.push(
+                        createBlueskyPost(this, blueskyText)
+                            .catch(error => console.error('Failed to post to Bluesky:', error))
+                    );
+                }
+            }
+
+            // Post to Discord if enabled
+            if (this.settings.enableDiscordNotifications && this.settings.discordWebhookUrl) {
+                const discordStyles = getStyles('discord');
+                console.log(discordStyles);
+                if (discordStyles) {
+                    const discordText = this.applyStyles(text, discordStyles);
+                    promises.push(
+                        this.postToDiscord(discordText)
+                            .catch(error => console.error('Failed to post to Discord:', error))
+                    );
+                }
+            }
+
+            // Wait for all posts to complete
+            await Promise.all(promises);
+            new Notice('Posted successfully to all platforms');
+        } catch (error) {
+            console.error(`Failed to post:`, error);
+            new Notice(`Failed to post: ${error.message}`);
+        }
+    }
+
+    // Helper function to post to Discord
+    async postToDiscord(text: string) {
+        const { discordWebhookUrl, enableDiscordNotifications } = this.settings;
+  
+        if (!enableDiscordNotifications || !discordWebhookUrl) {
+          return;
+        }
+
+        const response = await fetch(this.settings.discordWebhookUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                content: text,
+                avatar_url: this.settings.discordAvatarUrl,
+                username: 'eharris128'
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`Discord API error: ${response.statusText}`);
+        }
     }
 }
 
