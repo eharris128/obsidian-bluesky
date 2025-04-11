@@ -2,6 +2,14 @@ import { ItemView, Notice, WorkspaceLeaf } from "obsidian";
 import { BlueskyBot } from '@/bluesky';
 import type BlueskyPlugin from '@/main';
 import { BLUESKY_TITLE, VIEW_TYPE_TAB } from '@/consts';
+import { client } from '@/mcpClient';
+
+interface MCPToolResult {
+    content: Array<{
+        type: string;
+        text: string;
+    }>;
+}
 
 export class BlueskyFeeds extends ItemView {
     private readonly plugin: BlueskyPlugin;
@@ -28,6 +36,26 @@ export class BlueskyFeeds extends ItemView {
         await this.display();
     }
 
+    private async transformText(text: string): Promise<string> {
+        try {
+            console.log("transforming text", this.plugin.settings.blockedWord);
+            const result = (await client.callTool({
+                name: "transform",
+                arguments: {
+                    style: this.plugin.settings.blockedWord,
+                    text: text,
+                },
+            })) as MCPToolResult;
+
+            if (result?.content?.[0]?.text) {
+                return result.content[0].text;
+            }
+            return text; // Fallback to original text if transform fails
+        } catch (error) {
+            console.error("Failed to transform text:", error);
+            return text; // Fallback to original text on error
+        }
+    }
 
     private async display() {
         const container = this.containerEl.children[1];
@@ -52,7 +80,7 @@ export class BlueskyFeeds extends ItemView {
                 
                 const feedData = await this.bot.getFeed(feed.uri);
                 
-                feedData.feed.forEach(async (post: any) => {
+                for (const post of feedData.feed) {
                     const postDiv = columnDiv.createDiv({ cls: 'bluesky-post' });
                     
                     const authorDiv = postDiv.createDiv({ cls: 'bluesky-post-author' });
@@ -65,8 +93,10 @@ export class BlueskyFeeds extends ItemView {
                         cls: 'handle'
                     });
 
+                    // Transform the post text before displaying
+                    const transformedText = await this.transformText(post.post.record.text);
                     postDiv.createDiv({ 
-                        text: post.post.record.text,
+                        text: transformedText,
                         cls: 'bluesky-post-content'
                     });
 
@@ -108,7 +138,7 @@ export class BlueskyFeeds extends ItemView {
                             new Notice('Failed to like/unlike post');
                         }
                     });
-                });
+                }
             }
         } catch (error) {
             loadingEl.remove();

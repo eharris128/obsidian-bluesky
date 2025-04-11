@@ -19,6 +19,7 @@ interface BlueskyPluginSettings {
 	discordWebhookUrl: string;
 	enableDiscordNotifications: boolean;
 	discordAvatarUrl: string;
+	blockedWord: string;
 }
 
 interface MCPToolResult {
@@ -35,6 +36,7 @@ const INITIAL_BLUESKY_SETTINGS: BlueskyPluginSettings = {
 	enableDiscordNotifications: false,
 	discordAvatarUrl:
 		"https://cdn.bsky.app/img/avatar/plain/did:plc:z72i7hdynmk6r22z27h6tvur/bafkreih5cd5cta7zuysbsv5moihorugt6gnfwv43dhzrhhcx6wxgpxsph4@jpeg",
+	blockedWord: "",
 };
 
 export default class BlueskyPlugin extends Plugin {
@@ -82,10 +84,11 @@ export default class BlueskyPlugin extends Plugin {
 					const result = (await client.callTool({
 						name: "transform",
 						arguments: {
-							style: "",
+							style: this.settings.blockedWord,
 							text: selectedText,
 						},
 					})) as MCPToolResult;
+					console.log("result", result);
 
 					if (result?.content?.[0]?.text) {
 						// Replace the selected text with transformed version
@@ -292,29 +295,17 @@ class BlueskySettingTab extends PluginSettingTab {
 
 	display(): void {
 		const { containerEl } = this;
+
 		containerEl.empty();
 
-		containerEl.createEl("p", {
-			text: "To get your app password:",
-		});
-		const steps = containerEl.createEl("ol");
-		const li = steps.createEl("li");
-		li.setText("Go to Bluesky App Passwords ");
-		li.createEl("a", {
-			text: "page",
-			href: "https://bsky.app/settings/app-passwords",
-		});
-		steps.createEl("li", { text: 'Click "Add App Password"' });
-		steps.createEl("li", { text: 'Give it a name (e.g. "Obsidian")' });
-		steps.createEl("li", { text: 'Click "Create App Password"' });
-		steps.createEl("li", { text: "Copy the generated password" });
+		containerEl.createEl("h2", { text: "Bluesky Settings" });
 
 		new Setting(containerEl)
-			.setName("Bluesky identifier")
-			.setDesc("Your Bluesky handle or email (required)")
+			.setName("Bluesky Handle")
+			.setDesc("Your Bluesky handle (e.g., @example.bsky.social)")
 			.addText((text) =>
 				text
-					.setPlaceholder("handle.bsky.social")
+					.setPlaceholder("Enter your Bluesky handle")
 					.setValue(this.plugin.settings.blueskyIdentifier)
 					.onChange(async (value) => {
 						this.plugin.settings.blueskyIdentifier = value;
@@ -323,15 +314,27 @@ class BlueskySettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName("Bluesky app password")
-			.setDesc("Your Bluesky app password (required)")
+			.setName("Bluesky App Password")
+			.setDesc("Your Bluesky app password")
 			.addText((text) =>
 				text
-					.setPlaceholder("Enter app password")
-					.then((text) => (text.inputEl.type = "password"))
+					.setPlaceholder("Enter your Bluesky app password")
 					.setValue(this.plugin.settings.blueskyAppPassword)
 					.onChange(async (value) => {
 						this.plugin.settings.blueskyAppPassword = value;
+						await this.plugin.saveSettings();
+					})
+			);
+
+		new Setting(containerEl)
+			.setName("Blocked Word")
+			.setDesc("Word to be blocked in posts (used for transform)")
+			.addText((text) =>
+				text
+					.setPlaceholder("Enter word to block")
+					.setValue(this.plugin.settings.blockedWord)
+					.onChange(async (value) => {
+						this.plugin.settings.blockedWord = value;
 						await this.plugin.saveSettings();
 					})
 			);

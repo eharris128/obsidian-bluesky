@@ -37,12 +37,13 @@ export class BlueskyBot {
           // 'at://did:plc:z72i7hdynmk6r22z27h6tvur/app.bsky.feed.generator/whats-hot',
           // 'at://did:plc:z72i7hdynmk6r22z27h6tvur/app.bsky.feed.generator/tech',
           // 'at://did:plc:nubczgdb7tau5ebpgdieab76/feed/aaaonssncq7u6',
-          'at://did:plc:nubczgdb7tau5ebpgdieab76/app.bsky.feed.generator/aaaonssncq7u6',
-
+          // 'at://did:plc:nubczgdb7tau5ebpgdieab76/app.bsky.feed.generator/aaaonssncq7u6',
+          // 'at://did:plc:nubczgdb7tau5ebpgdieab76/feed/aaaciayefcnme',
+          'at://did:plc:nubczgdb7tau5ebpgdieab76/app.bsky.feed.generator/aaaciayefcnme',
           // 'at://did:plc:nubczgdb7tau5ebpgdieab76/app.bsky.feed.generator/aloha',
-          'at://did:plc:jfhpnnst6flqway4eaeqzj2a/app.bsky.feed.generator/for-science',
+          // 'at://did:plc:jfhpnnst6flqway4eaeqzj2a/app.bsky.feed.generator/for-science',
           // 'at://did:plc:z72i7hdynmk6r22z27h6tvur/app.bsky.feed.generator/with-friends',
-          'at://did:plc:z72i7hdynmk6r22z27h6tvur/app.bsky.feed.generator/hot-classic'
+          // 'at://did:plc:z72i7hdynmk6r22z27h6tvur/app.bsky.feed.generator/hot-classic'
         ]
       })
       
