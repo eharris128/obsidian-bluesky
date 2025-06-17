@@ -1,6 +1,7 @@
 import { Notice, requestUrl } from 'obsidian';
 import { AtpAgent, RichText, AppBskyEmbedExternal, BlobRef } from '@atproto/api'
 import type BlueskyPlugin from '@/main'
+import { logger } from '@/utils/logger'
 
 interface ThreadPost {
   text: string
@@ -74,7 +75,7 @@ export class BlueskyBot {
         image: profile.avatar
       };
     } catch (error) {
-      console.warn('Failed to fetch Bluesky profile, falling back to regular metadata:', error);
+      logger.warn('Failed to fetch Bluesky profile, falling back to regular metadata:', error);
       // Fall back to regular metadata fetching if profile fetch fails
       return null;
     }
@@ -105,7 +106,7 @@ export class BlueskyBot {
       
       // Check if request was successful
       if (!response || response.status >= 400) {
-        console.warn(`Failed to fetch ${requestUrl_final}: Status ${response?.status || 'unknown'}`);
+        logger.warn(`Failed to fetch ${requestUrl_final}: Status ${response?.status || 'unknown'}`);
         return null;
       }
       
@@ -134,7 +135,7 @@ export class BlueskyBot {
             };
           }
         } catch (e) {
-          console.warn('Failed to parse Reddit JSON, falling back to HTML');
+          logger.warn('Failed to parse Reddit JSON, falling back to HTML');
         }
       }
       
@@ -194,11 +195,11 @@ export class BlueskyBot {
     } catch (error: any) {
       // Handle specific error types
       if (error.message?.includes('ERR_CERT_') || error.message?.includes('certificate')) {
-        console.warn('Certificate error for URL:', url);
+        logger.warn('Certificate error for URL:', url);
       } else if (error.message?.includes('ERR_NAME_NOT_RESOLVED')) {
-        console.warn('DNS error for URL:', url);
+        logger.warn('DNS error for URL:', url);
       } else {
-        console.error('Failed to fetch link metadata:', error);
+        logger.error('Failed to fetch link metadata:', error);
       }
       return null
     }
