@@ -38,6 +38,9 @@ export class BlueskyTab extends ItemView {
         // First, fix any links that have been extended by typing
         this.fixExtendedLinks(editor);
         
+        // Auto-detect and style pasted URLs
+        this.autoStyleUrls(editor);
+        
         const text = this.getEditorText(editor);
         this.posts[index] = text;
 
@@ -56,6 +59,80 @@ export class BlueskyTab extends ItemView {
 
         this.updateButtonStates();
     }
+
+    private autoStyleUrls(editor: HTMLElement) {
+        const text = editor.textContent || '';
+        const urlRegex = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/g;
+        
+        // Find all URLs in the text
+        const urls = [...text.matchAll(urlRegex)];
+        
+        if (urls.length === 0) return;
+        
+        // Check if any URLs are not already styled
+        const existingLinks = editor.querySelectorAll('.bluesky-link');
+        const styledUrls = Array.from(existingLinks).map(link => link.getAttribute('data-url'));
+        
+        let needsUpdate = false;
+        
+        for (const match of urls) {
+            const url = match[0];
+            if (!styledUrls.includes(url)) {
+                needsUpdate = true;
+                break;
+            }
+        }
+        
+        if (!needsUpdate) return;
+        
+        // Save current cursor position
+        const selection = window.getSelection();
+        let cursorOffset = 0;
+        if (selection && selection.rangeCount > 0) {
+            const range = selection.getRangeAt(0);
+            cursorOffset = range.startOffset;
+        }
+        
+        // Simple approach: replace innerHTML with styled URLs
+        let html = editor.innerHTML;
+        
+        for (const match of urls) {
+            const url = match[0];
+            if (!styledUrls.includes(url)) {
+                const linkHtml = `<span class="bluesky-link" data-url="${url}" data-original-text="${url}" title="${url}">${url}</span>`;
+                // Only replace the first occurrence to avoid replacing already styled ones
+                html = html.replace(url, linkHtml);
+            }
+        }
+        
+        if (html !== editor.innerHTML) {
+            editor.innerHTML = html;
+            
+            // Try to restore cursor position
+            if (selection) {
+                try {
+                    const range = document.createRange();
+                    const textNode = editor.firstChild;
+                    if (textNode && textNode.nodeType === Node.TEXT_NODE) {
+                        range.setStart(textNode, Math.min(cursorOffset, textNode.textContent?.length || 0));
+                    } else {
+                        range.selectNodeContents(editor);
+                        range.collapse(false);
+                    }
+                    selection.removeAllRanges();
+                    selection.addRange(range);
+                } catch (e) {
+                    // If cursor restoration fails, place it at the end
+                    const range = document.createRange();
+                    range.selectNodeContents(editor);
+                    range.collapse(false);
+                    selection.removeAllRanges();
+                    selection.addRange(range);
+                }
+            }
+        }
+    }
+
 
     private fixExtendedLinks(editor: HTMLElement) {
         const linkElements = editor.querySelectorAll('.bluesky-link');
@@ -418,6 +495,7 @@ export class BlueskyTab extends ItemView {
             cls: 'bluesky-editor',
             attr: {
                 contenteditable: 'true',
+                spellcheck: 'false',
                 'data-placeholder': 'Continue thread...',
                 'data-index': index.toString()
             }
@@ -508,6 +586,7 @@ export class BlueskyTab extends ItemView {
                 cls: 'bluesky-editor',
                 attr: {
                     contenteditable: 'true',
+                    spellcheck: 'false',
                     'data-placeholder': index === 0 ? "What's on your mind?" : "Continue thread...",
                     'data-index': index.toString()
                 }
