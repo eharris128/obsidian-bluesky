@@ -109,27 +109,13 @@ export class BlueskyTab extends ItemView {
         if (html !== editor.innerHTML) {
             editor.innerHTML = html;
             
-            // Try to restore cursor position
+            // Place cursor at the end of the content
             if (selection) {
-                try {
-                    const range = document.createRange();
-                    const textNode = editor.firstChild;
-                    if (textNode && textNode.nodeType === Node.TEXT_NODE) {
-                        range.setStart(textNode, Math.min(cursorOffset, textNode.textContent?.length || 0));
-                    } else {
-                        range.selectNodeContents(editor);
-                        range.collapse(false);
-                    }
-                    selection.removeAllRanges();
-                    selection.addRange(range);
-                } catch (e) {
-                    // If cursor restoration fails, place it at the end
-                    const range = document.createRange();
-                    range.selectNodeContents(editor);
-                    range.collapse(false);
-                    selection.removeAllRanges();
-                    selection.addRange(range);
-                }
+                const range = document.createRange();
+                range.selectNodeContents(editor);
+                range.collapse(false);
+                selection.removeAllRanges();
+                selection.addRange(range);
             }
         }
     }
