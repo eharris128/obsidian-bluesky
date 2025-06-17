@@ -52,19 +52,26 @@ export class BlueskyBot {
 
   async fetchBlueskyProfileMetadata(url: string): Promise<LinkMetadata | null> {
     try {
-      // Extract handle from URL like https://bsky.app/profile/10xdeveloper.bsky.social
       const handleMatch = url.match(/bsky\.app\/profile\/([^\/\?]+)/);
       if (!handleMatch) return null;
       
       const handle = handleMatch[1];
       
-      // Ensure we're logged in to access profile data
-      if (!this.agent.session?.did) {
-        await this.login();
+      // Validate handle format
+      if (!handle || handle.length === 0) {
+        return null;
       }
       
-      // Use the AT Protocol to get profile info
-      const response = await this.agent.getProfile({ actor: handle });
+      // Try to get profile info (public profiles don't require login)
+      let response;
+      try {
+        response = await this.agent.getProfile({ actor: handle });
+      } catch (error) {
+        if (!this.agent.session?.did) {
+          await this.login();
+        }
+        response = await this.agent.getProfile({ actor: handle });
+      }
       const profile = response.data;
       
       // Format follower/following counts
