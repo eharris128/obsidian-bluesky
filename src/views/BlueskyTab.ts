@@ -3,6 +3,7 @@ import { BlueskyBot } from '@/bluesky';
 import type BlueskyPlugin from '@/main';
 import { BLUESKY_TITLE, VIEW_TYPE_TAB } from '@/consts';
 import { LinkModal } from '@/modals/LinkModal';
+import { logger } from '@/utils/logger';
 
 export class BlueskyTab extends ItemView {
     private readonly plugin: BlueskyPlugin;
@@ -270,7 +271,7 @@ export class BlueskyTab extends ItemView {
                     }
                 }
             } catch (error) {
-                console.warn('Error fetching link preview:', error);
+                logger.warn('Error fetching link preview:', error);
                 if (existingPreviewEl && !hasManualLinks) {
                     existingPreviewEl.remove();
                     this.linkPreviewEls.delete(postIndex);
@@ -451,7 +452,7 @@ export class BlueskyTab extends ItemView {
                     await this.detectAndPreviewLink(url, false, index);
                 }
             } catch (error) {
-                console.warn('Could not fetch link preview:', error);
+                logger.warn('Could not fetch link preview:', error);
                 // Link is still added, just without preview
             }
         }).open();
@@ -549,7 +550,7 @@ export class BlueskyTab extends ItemView {
             this.linkPreviewEls.clear();
             this.linkRanges = [];
         } catch (error) {
-            console.error('Failed to post:', error);
+            logger.error('Failed to post:', error);
             if (error.message.includes('Failed to fetch')) {
                 new Notice('Failed to post. Could not connect to the internet.')
             } else if (error.message.includes('Invalid identifier or password')) {
