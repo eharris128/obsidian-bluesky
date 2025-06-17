@@ -39,6 +39,9 @@ const context = await esbuild.context({
 	treeShaking: true,
 	outfile: "main.js",
 	minify: prod,
+	define: {
+		'__DEV__': (!prod).toString(),
+	},
 });
 
 if (prod) {
