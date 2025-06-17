@@ -42,8 +42,51 @@ export class BlueskyBot {
     }
   }
 
+  async fetchBlueskyProfileMetadata(url: string): Promise<LinkMetadata | null> {
+    try {
+      // Extract handle from URL like https://bsky.app/profile/10xdeveloper.bsky.social
+      const handleMatch = url.match(/bsky\.app\/profile\/([^\/\?]+)/);
+      if (!handleMatch) return null;
+      
+      const handle = handleMatch[1];
+      
+      // Ensure we're logged in to access profile data
+      if (!this.agent.session?.did) {
+        await this.login();
+      }
+      
+      // Use the AT Protocol to get profile info
+      const response = await this.agent.getProfile({ actor: handle });
+      const profile = response.data;
+      
+      // Format follower/following counts
+      const followersText = profile.followersCount ? `${profile.followersCount.toLocaleString()} followers` : '';
+      const followingText = profile.followsCount ? `${profile.followsCount.toLocaleString()} following` : '';
+      const postsText = profile.postsCount ? `${profile.postsCount.toLocaleString()} posts` : '';
+      
+      const stats = [followersText, followingText, postsText].filter(Boolean).join(' • ');
+      const description = profile.description ? `${profile.description}\n\n${stats}` : stats;
+      
+      return {
+        url,
+        title: profile.displayName ? `${profile.displayName} (@${profile.handle})` : `@${profile.handle}`,
+        description: description,
+        image: profile.avatar
+      };
+    } catch (error) {
+      console.warn('Failed to fetch Bluesky profile, falling back to regular metadata:', error);
+      // Fall back to regular metadata fetching if profile fetch fails
+      return null;
+    }
+  }
+
   async fetchLinkMetadata(url: string): Promise<LinkMetadata | null> {
     try {
+      // Handle Bluesky profile URLs specially
+      if (url.includes('bsky.app/profile/')) {
+        return await this.fetchBlueskyProfileMetadata(url);
+      }
+      
       // Use Obsidian's requestUrl to avoid CORS issues
       // For Reddit posts, try to get the JSON API version which has better metadata
       let requestUrl_final = url;
@@ -147,7 +190,7 @@ export class BlueskyBot {
         title: title.substring(0, 200), // Allow longer titles
         description: finalDescription?.substring(0, 500), // Allow longer descriptions
         image
-      }
+      };
     } catch (error: any) {
       // Handle specific error types
       if (error.message?.includes('ERR_CERT_') || error.message?.includes('certificate')) {
