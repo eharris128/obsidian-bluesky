@@ -45,34 +45,107 @@ export class BlueskyBot {
   async fetchLinkMetadata(url: string): Promise<LinkMetadata | null> {
     try {
       // Use Obsidian's requestUrl to avoid CORS issues
+      // For Reddit posts, try to get the JSON API version which has better metadata
+      let requestUrl_final = url;
+      if (url.includes('reddit.com/r/') && !url.includes('.json')) {
+        requestUrl_final = url.endsWith('/') ? url + '.json' : url + '.json';
+      }
+      
       const response = await requestUrl({
-        url: url,
+        url: requestUrl_final,
         method: 'GET',
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; ObsidianBluesky/1.0)'
+        },
         throw: false // Don't throw on HTTP errors
       })
       
       // Check if request was successful
       if (!response || response.status >= 400) {
-        console.warn(`Failed to fetch ${url}: Status ${response?.status || 'unknown'}`);
+        console.warn(`Failed to fetch ${requestUrl_final}: Status ${response?.status || 'unknown'}`);
         return null;
+      }
+      
+      // Handle Reddit JSON API response
+      if (requestUrl_final.includes('.json')) {
+        try {
+          const jsonData = JSON.parse(response.text);
+          const post = jsonData?.[0]?.data?.children?.[0]?.data;
+          
+          if (post) {
+            // Get the best available image
+            let image = undefined;
+            if (post.preview?.images?.[0]?.source?.url) {
+              // Use high-quality preview image
+              image = post.preview.images[0].source.url.replace(/&amp;/g, '&');
+            } else if (post.thumbnail && post.thumbnail !== 'self' && post.thumbnail !== 'default') {
+              // Fallback to thumbnail
+              image = post.thumbnail;
+            }
+            
+            return {
+              url: url, // Use original URL, not JSON URL
+              title: post.title || 'Reddit Post',
+              description: post.selftext || post.url_overridden_by_dest || 'Reddit discussion',
+              image: image
+            };
+          }
+        } catch (e) {
+          console.warn('Failed to parse Reddit JSON, falling back to HTML');
+        }
       }
       
       const html = response.text
       
       const getMetaContent = (property: string): string | undefined => {
-        const regex = new RegExp(`<meta\\s+(?:property|name)=["'](?:og:)?${property}["']\\s+content=["']([^"']+)["']`, 'i')
-        const match = html.match(regex)
-        return match?.[1]
+        // Try Open Graph first, then standard meta tags
+        const ogRegex = new RegExp(`<meta\\s+property=["']og:${property}["']\\s+content=["']([^"']+)["']`, 'i')
+        const metaRegex = new RegExp(`<meta\\s+name=["']${property}["']\\s+content=["']([^"']+)["']`, 'i')
+        
+        const ogMatch = html.match(ogRegex)
+        if (ogMatch) return ogMatch[1]
+        
+        const metaMatch = html.match(metaRegex)
+        return metaMatch?.[1]
       }
 
-      const title = getMetaContent('title') || html.match(/<title>([^<]+)<\/title>/i)?.[1] || url
-      const description = getMetaContent('description')
-      const image = getMetaContent('image')
+      // Try multiple sources for title
+      const title = getMetaContent('title') || 
+                   html.match(/<meta\s+property=["']og:title["']\s+content=["']([^"']+)["']/i)?.[1] ||
+                   html.match(/<title>([^<]+)<\/title>/i)?.[1] || 
+                   url
+                   
+      // Try multiple sources for description  
+      const description = getMetaContent('description') ||
+                         html.match(/<meta\s+property=["']og:description["']\s+content=["']([^"']+)["']/i)?.[1]
+                         
+      // Try multiple sources for image
+      const image = getMetaContent('image') ||
+                   html.match(/<meta\s+property=["']og:image["']\s+content=["']([^"']+)["']/i)?.[1]
+
+      // Fallback: if no description found, try to extract from content
+      let finalDescription = description;
+      if (!finalDescription) {
+        // Try to find some descriptive text from the page
+        const bodyMatch = html.match(/<body[^>]*>(.*?)<\/body>/is);
+        if (bodyMatch) {
+          const bodyText = bodyMatch[1]
+            .replace(/<script[^>]*>.*?<\/script>/gis, '')
+            .replace(/<style[^>]*>.*?<\/style>/gis, '')
+            .replace(/<[^>]*>/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+          
+          if (bodyText.length > 50) {
+            finalDescription = bodyText.substring(0, 300) + '...';
+          }
+        }
+      }
 
       return {
         url,
-        title: title.substring(0, 100),
-        description: description?.substring(0, 300),
+        title: title.substring(0, 200), // Allow longer titles
+        description: finalDescription?.substring(0, 500), // Allow longer descriptions
         image
       }
     } catch (error: any) {

@@ -10,8 +10,8 @@ export class BlueskyTab extends ItemView {
     private posts: string[] = [''];
     private isPosting: boolean = false;
     private readonly MAX_CHARS = 300;
-    private linkMetadata: any = null;
-    private linkPreviewEl: HTMLElement | null = null;
+    private linkMetadata: Map<number, any> = new Map(); // Track metadata per post index
+    private linkPreviewEls: Map<number, HTMLElement> = new Map(); // Track preview elements per post
     private linkRanges: Array<{start: number, end: number, url: string, text: string}> = [];
 
     constructor(leaf: WorkspaceLeaf, plugin: BlueskyPlugin) {
@@ -51,9 +51,8 @@ export class BlueskyTab extends ItemView {
             }
         }
 
-        if (index === 0) {
-            this.detectAndPreviewLink(text, true);
-        }
+        // Detect and preview links for any post in the thread
+        this.detectAndPreviewLink(text, true, index);
 
         this.updateButtonStates();
     }
@@ -134,64 +133,92 @@ export class BlueskyTab extends ItemView {
         document.execCommand('insertText', false, text);
     }
 
-    private async detectAndPreviewLink(text: string, preserveManualLinks = false) {
-        // Check if there are manual links in the editor
-        const editor = this.containerEl.querySelector('.bluesky-editor') as HTMLElement;
-        const hasManualLinks = editor && editor.querySelectorAll('.bluesky-link').length > 0;
+    private async detectAndPreviewLink(text: string, preserveManualLinks = false, postIndex = 0) {
+        // Find the specific editor for this post
+        const editors = this.containerEl.querySelectorAll('.bluesky-editor');
+        const editor = editors[postIndex] as HTMLElement;
+        
+        if (!editor) return;
+        
+        const hasManualLinks = editor.querySelectorAll('.bluesky-link').length > 0;
+        const existingMetadata = this.linkMetadata.get(postIndex);
+        const existingPreviewEl = this.linkPreviewEls.get(postIndex);
         
         // If we have manual links and should preserve them, keep existing preview
-        if (preserveManualLinks && hasManualLinks && this.linkMetadata) {
+        if (preserveManualLinks && hasManualLinks && existingMetadata) {
             return; // Don't change existing preview when typing with manual links
         }
         
-        const url = typeof text === 'string' && text.startsWith('http') ? text : this.bot.extractFirstUrl(text);
+        // Check for URLs in both plain text and manual links
+        let url = typeof text === 'string' && text.startsWith('http') ? text : this.bot.extractFirstUrl(text);
         
-        if (!url && this.linkPreviewEl && !hasManualLinks) {
-            this.linkPreviewEl.remove();
-            this.linkPreviewEl = null;
-            this.linkMetadata = null;
+        // If no URL found in plain text, check manual links
+        if (!url && hasManualLinks) {
+            const firstLink = editor.querySelector('.bluesky-link');
+            if (firstLink) {
+                url = firstLink.getAttribute('data-url');
+            }
+        }
+        
+        // Only remove preview if no URL found anywhere and no manual links
+        if (!url && existingPreviewEl && !hasManualLinks) {
+            existingPreviewEl.remove();
+            this.linkPreviewEls.delete(postIndex);
+            this.linkMetadata.delete(postIndex);
             return;
         }
 
-        if (url && (!this.linkMetadata || this.linkMetadata.url !== url)) {
+        // If we have an existing preview for the same URL, keep it
+        if (url && existingMetadata && existingMetadata.url === url) {
+            return; // Keep existing preview for same URL
+        }
+
+        if (url && (!existingMetadata || existingMetadata.url !== url)) {
             try {
-                if (this.linkPreviewEl) {
-                    this.linkPreviewEl.addClass('loading');
+                if (existingPreviewEl) {
+                    existingPreviewEl.addClass('loading');
                 }
 
                 const metadata = await this.bot.fetchLinkMetadata(url);
                 
                 if (metadata) {
-                    this.linkMetadata = metadata;
-                    this.showLinkPreview(metadata);
+                    this.linkMetadata.set(postIndex, metadata);
+                    this.showLinkPreview(metadata, postIndex);
                 } else {
                     // If metadata fetch failed, remove any existing preview only if no manual links
-                    if (this.linkPreviewEl && !hasManualLinks) {
-                        this.linkPreviewEl.remove();
-                        this.linkPreviewEl = null;
+                    if (existingPreviewEl && !hasManualLinks) {
+                        existingPreviewEl.remove();
+                        this.linkPreviewEls.delete(postIndex);
+                        this.linkMetadata.delete(postIndex);
                     }
                 }
             } catch (error) {
                 console.warn('Error fetching link preview:', error);
-                if (this.linkPreviewEl && !hasManualLinks) {
-                    this.linkPreviewEl.remove();
-                    this.linkPreviewEl = null;
+                if (existingPreviewEl && !hasManualLinks) {
+                    existingPreviewEl.remove();
+                    this.linkPreviewEls.delete(postIndex);
+                    this.linkMetadata.delete(postIndex);
                 }
             }
         }
     }
 
-    private showLinkPreview(metadata: any) {
-        const container = this.containerEl.querySelector('.bluesky-compose');
+    private showLinkPreview(metadata: any, postIndex = 0) {
+        // Find the specific container for this post
+        const containers = this.containerEl.querySelectorAll('.bluesky-compose');
+        const container = containers[postIndex] as HTMLElement;
         if (!container) return;
 
-        if (this.linkPreviewEl) {
-            this.linkPreviewEl.remove();
+        // Remove existing preview for this post
+        const existingPreviewEl = this.linkPreviewEls.get(postIndex);
+        if (existingPreviewEl) {
+            existingPreviewEl.remove();
         }
 
-        this.linkPreviewEl = container.createDiv({ cls: 'bluesky-link-preview' });
+        const linkPreviewEl = container.createDiv({ cls: 'bluesky-link-preview' });
+        this.linkPreviewEls.set(postIndex, linkPreviewEl);
         
-        const previewContent = this.linkPreviewEl.createDiv({ cls: 'bluesky-link-preview-content' });
+        const previewContent = linkPreviewEl.createDiv({ cls: 'bluesky-link-preview-content' });
         
         if (metadata.image) {
             previewContent.createEl('img', {
@@ -218,15 +245,15 @@ export class BlueskyTab extends ItemView {
             text: new URL(metadata.url).hostname
         });
 
-        const removeBtn = this.linkPreviewEl.createEl('button', {
+        const removeBtn = linkPreviewEl.createEl('button', {
             cls: 'bluesky-link-preview-remove',
             attr: { 'aria-label': 'Remove link preview' }
         });
         this.plugin.addIcon(removeBtn, 'lucide-x');
         removeBtn.addEventListener('click', () => {
-            this.linkMetadata = null;
-            this.linkPreviewEl?.remove();
-            this.linkPreviewEl = null;
+            this.linkMetadata.delete(postIndex);
+            linkPreviewEl.remove();
+            this.linkPreviewEls.delete(postIndex);
         });
     }
 
@@ -341,9 +368,10 @@ export class BlueskyTab extends ItemView {
             
             // Try to show link preview for the manually added link
             try {
-                // Only show preview if we don't already have one
-                if (!this.linkMetadata) {
-                    await this.detectAndPreviewLink(url, false);
+                const index = parseInt(editor.getAttribute('data-index') || '0');
+                // Only show preview if we don't already have one for this post
+                if (!this.linkMetadata.get(index)) {
+                    await this.detectAndPreviewLink(url, false, index);
                 }
             } catch (error) {
                 console.warn('Could not fetch link preview:', error);
@@ -433,12 +461,14 @@ export class BlueskyTab extends ItemView {
                 // Extract links from the editor for the first post
                 const editor = this.containerEl.querySelector('.bluesky-editor') as HTMLElement;
                 const editorLinks = editor ? this.extractLinksFromEditor(editor) : [];
-                success = await this.bot.createPost(validPosts[0], this.linkMetadata, editorLinks);
+                const metadata = this.linkMetadata.get(0); // Get metadata for first post
+                success = await this.bot.createPost(validPosts[0], metadata, editorLinks);
             } else {
                 success = await this.bot.createThread(validPosts);
             }
             this.posts = [''];
-            this.linkMetadata = null;
+            this.linkMetadata.clear();
+            this.linkPreviewEls.clear();
             this.linkRanges = [];
         } catch (error) {
             console.error('Failed to post:', error);
@@ -464,8 +494,10 @@ export class BlueskyTab extends ItemView {
         container.empty();
         container.addClass('bluesky-content');
         
-        // Clear link ranges when redisplaying
+        // Clear all link data when redisplaying
         this.linkRanges = [];
+        this.linkMetadata.clear();
+        this.linkPreviewEls.clear();
 
         container.createEl("h4", { text: "Bluesky" });
 
