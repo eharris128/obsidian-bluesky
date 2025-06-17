@@ -9,7 +9,7 @@ export class BlueskyTab extends ItemView {
     private readonly plugin: BlueskyPlugin;
     private bot: BlueskyBot;
     private posts: string[] = [''];
-    private isPosting: boolean = false;
+    private isPosting: boolean;
     private readonly MAX_CHARS = 300;
     private linkMetadata: Map<number, any> = new Map(); // Track metadata per post index
     private linkPreviewEls: Map<number, HTMLElement> = new Map(); // Track preview elements per post
@@ -86,14 +86,6 @@ export class BlueskyTab extends ItemView {
         
         if (!needsUpdate) return;
         
-        // Save current cursor position
-        const selection = window.getSelection();
-        let cursorOffset = 0;
-        if (selection && selection.rangeCount > 0) {
-            const range = selection.getRangeAt(0);
-            cursorOffset = range.startOffset;
-        }
-        
         // Simple approach: replace innerHTML with styled URLs
         let html = editor.innerHTML;
         
@@ -110,6 +102,7 @@ export class BlueskyTab extends ItemView {
             editor.innerHTML = html;
             
             // Place cursor at the end of the content
+            const selection = window.getSelection();
             if (selection) {
                 const range = document.createRange();
                 range.selectNodeContents(editor);
@@ -319,18 +312,6 @@ export class BlueskyTab extends ItemView {
             linkPreviewEl.remove();
             this.linkPreviewEls.delete(postIndex);
         });
-    }
-
-    private applyLinkStyling(textarea: HTMLTextAreaElement) {
-        // Add a visual indicator by changing the textarea's styling
-        // We'll add a CSS class and use a data attribute to track linked ranges
-        textarea.addClass('has-links');
-        
-        // Store link ranges as data attribute for CSS styling reference
-        textarea.setAttribute('data-link-ranges', JSON.stringify(this.linkRanges));
-        
-        // Add a subtle visual indicator next to the textarea
-        this.showLinkIndicators(textarea);
     }
 
     private showLinkIndicators(textarea: HTMLTextAreaElement) {
