@@ -3,6 +3,13 @@ import { AtpAgent, RichText, AppBskyEmbedExternal, BlobRef } from '@atproto/api'
 import type BlueskyPlugin from '@/main'
 import { logger } from '@/utils/logger'
 
+// Utility function to decode HTML entities
+const decodeHtmlEntities = (text: string): string => {
+  const textarea = document.createElement('textarea');
+  textarea.innerHTML = text;
+  return textarea.value;
+};
+
 interface ThreadPost {
   text: string
   reply?: { root: { uri: string; cid: string }, parent: { uri: string; cid: string } }
@@ -38,7 +45,7 @@ export class BlueskyBot {
         password: blueskyAppPassword
       })
     } catch (error) {
-      console.error('Failed to login:', error)
+      logger.error('Failed to login:', error)
       throw error
     }
   }
@@ -68,10 +75,12 @@ export class BlueskyBot {
       const stats = [followersText, followingText, postsText].filter(Boolean).join(' • ');
       const description = profile.description ? `${profile.description}\n\n${stats}` : stats;
       
+      // Decode HTML entities
+      
       return {
         url,
-        title: profile.displayName ? `${profile.displayName} (@${profile.handle})` : `@${profile.handle}`,
-        description: description,
+        title: profile.displayName ? `${decodeHtmlEntities(profile.displayName)} (@${profile.handle})` : `@${profile.handle}`,
+        description: description ? decodeHtmlEntities(description) : undefined,
         image: profile.avatar
       };
     } catch (error) {
@@ -129,8 +138,8 @@ export class BlueskyBot {
             
             return {
               url: url, // Use original URL, not JSON URL
-              title: post.title || 'Reddit Post',
-              description: post.selftext || post.url_overridden_by_dest || 'Reddit discussion',
+              title: decodeHtmlEntities(post.title || 'Reddit Post'),
+              description: decodeHtmlEntities(post.selftext || post.url_overridden_by_dest || 'Reddit discussion'),
               image: image
             };
           }
@@ -188,11 +197,11 @@ export class BlueskyBot {
 
       return {
         url,
-        title: title.substring(0, 200), // Allow longer titles
-        description: finalDescription?.substring(0, 500), // Allow longer descriptions
+        title: decodeHtmlEntities(title).substring(0, 200), // Allow longer titles
+        description: finalDescription ? decodeHtmlEntities(finalDescription).substring(0, 500) : undefined, // Allow longer descriptions
         image
       };
-    } catch (error: any) {
+    } catch (error) {
       // Handle specific error types
       if (error.message?.includes('ERR_CERT_') || error.message?.includes('certificate')) {
         logger.warn('Certificate error for URL:', url);
@@ -223,7 +232,7 @@ export class BlueskyBot {
       
       return uploaded.data.blob
     } catch (error) {
-      console.error('Failed to upload image:', error)
+      logger.error('Failed to upload image:', error)
       return null
     }
   }
@@ -300,7 +309,7 @@ export class BlueskyBot {
       new Notice('Successfully posted to Bluesky!');
       return true
     } catch (error) {
-      console.error('Failed to post:', error)
+      logger.error('Failed to post:', error)
       if (error.message.includes('Failed to fetch')) {
         new Notice('Could not connect to the internet.')
       } else {
@@ -351,7 +360,7 @@ export async function createBlueskyPost(plugin: BlueskyPlugin, text: string): Pr
     await bot.login()
     await bot.createPost(text)
   } catch (error) {
-    console.error('Error posting to Bluesky:', error)
+    logger.error('Error posting to Bluesky:', error)
     throw error
   }
 }
