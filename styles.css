@@ -58,6 +58,14 @@
     text-decoration: underline;
     text-decoration-color: var(--interactive-accent);
     cursor: pointer;
+    display: inline;
+    white-space: nowrap;
+}
+
+.bluesky-link::after {
+    content: '';
+    display: inline-block;
+    width: 0;
 }
 
 .bluesky-buttons {

@@ -34,6 +34,10 @@ export class BlueskyTab extends ItemView {
 
     private handleEditorChange(index: number, event: Event) {
         const editor = event.target as HTMLElement;
+        
+        // First, fix any links that have been extended by typing
+        this.fixExtendedLinks(editor);
+        
         const text = this.getEditorText(editor);
         this.posts[index] = text;
 
@@ -48,10 +52,51 @@ export class BlueskyTab extends ItemView {
         }
 
         if (index === 0) {
-            this.detectAndPreviewLink(text);
+            this.detectAndPreviewLink(text, true);
         }
 
         this.updateButtonStates();
+    }
+
+    private fixExtendedLinks(editor: HTMLElement) {
+        const linkElements = editor.querySelectorAll('.bluesky-link');
+        
+        linkElements.forEach(linkElement => {
+            const originalText = linkElement.getAttribute('data-original-text');
+            const currentText = linkElement.textContent || '';
+            
+            // If we don't have the original text stored, store it now
+            if (!originalText) {
+                linkElement.setAttribute('data-original-text', currentText);
+                return;
+            }
+            
+            // If text has been added to the link, extract the extra text
+            if (currentText.length > originalText.length && currentText.startsWith(originalText)) {
+                const extraText = currentText.substring(originalText.length);
+                
+                // Restore the link to its original text
+                linkElement.textContent = originalText;
+                
+                // Create a text node for the extra text and insert it after the link
+                const textNode = document.createTextNode(extraText);
+                if (linkElement.nextSibling) {
+                    linkElement.parentNode?.insertBefore(textNode, linkElement.nextSibling);
+                } else {
+                    linkElement.parentNode?.appendChild(textNode);
+                }
+                
+                // Move cursor to the end of the new text
+                const selection = window.getSelection();
+                if (selection) {
+                    const range = document.createRange();
+                    range.setStart(textNode, textNode.textContent?.length || 0);
+                    range.collapse(true);
+                    selection.removeAllRanges();
+                    selection.addRange(range);
+                }
+            }
+        });
     }
 
     private getEditorText(editor: HTMLElement): string {
@@ -89,10 +134,19 @@ export class BlueskyTab extends ItemView {
         document.execCommand('insertText', false, text);
     }
 
-    private async detectAndPreviewLink(text: string) {
+    private async detectAndPreviewLink(text: string, preserveManualLinks = false) {
+        // Check if there are manual links in the editor
+        const editor = this.containerEl.querySelector('.bluesky-editor') as HTMLElement;
+        const hasManualLinks = editor && editor.querySelectorAll('.bluesky-link').length > 0;
+        
+        // If we have manual links and should preserve them, keep existing preview
+        if (preserveManualLinks && hasManualLinks && this.linkMetadata) {
+            return; // Don't change existing preview when typing with manual links
+        }
+        
         const url = typeof text === 'string' && text.startsWith('http') ? text : this.bot.extractFirstUrl(text);
         
-        if (!url && this.linkPreviewEl) {
+        if (!url && this.linkPreviewEl && !hasManualLinks) {
             this.linkPreviewEl.remove();
             this.linkPreviewEl = null;
             this.linkMetadata = null;
@@ -111,15 +165,15 @@ export class BlueskyTab extends ItemView {
                     this.linkMetadata = metadata;
                     this.showLinkPreview(metadata);
                 } else {
-                    // If metadata fetch failed, remove any existing preview
-                    if (this.linkPreviewEl) {
+                    // If metadata fetch failed, remove any existing preview only if no manual links
+                    if (this.linkPreviewEl && !hasManualLinks) {
                         this.linkPreviewEl.remove();
                         this.linkPreviewEl = null;
                     }
                 }
             } catch (error) {
                 console.warn('Error fetching link preview:', error);
-                if (this.linkPreviewEl) {
+                if (this.linkPreviewEl && !hasManualLinks) {
                     this.linkPreviewEl.remove();
                     this.linkPreviewEl = null;
                 }
@@ -228,12 +282,7 @@ export class BlueskyTab extends ItemView {
     }
 
     private handleKeyDown(e: KeyboardEvent, editor: HTMLElement) {
-        // Try Ctrl+L instead of Ctrl+K (which Obsidian uses for its own link insertion)
-        if ((e.key === 'l' || e.key === 'L') && (e.ctrlKey || e.metaKey)) {
-            e.preventDefault();
-            e.stopPropagation();
-            this.handleLinkInsertion(editor);
-        }
+        // Let all keystrokes pass through normally - we'll handle link separation in the input event
     }
 
     private handleLinkInsertion(editor: HTMLElement) {
@@ -260,6 +309,7 @@ export class BlueskyTab extends ItemView {
             linkElement.textContent = selectedText;
             linkElement.setAttribute('data-url', url);
             linkElement.setAttribute('title', url);
+            linkElement.setAttribute('data-original-text', selectedText);
             
             // Replace the selected text with the link element
             range.deleteContents();
@@ -289,9 +339,12 @@ export class BlueskyTab extends ItemView {
             // Show a visual indicator that the link has been added
             new Notice(`Link added to "${selectedText}"`);
             
-            // Try to show link preview, but don't let errors prevent link insertion
+            // Try to show link preview for the manually added link
             try {
-                await this.detectAndPreviewLink(url);
+                // Only show preview if we don't already have one
+                if (!this.linkMetadata) {
+                    await this.detectAndPreviewLink(url, false);
+                }
             } catch (error) {
                 console.warn('Could not fetch link preview:', error);
                 // Link is still added, just without preview
@@ -444,11 +497,11 @@ export class BlueskyTab extends ItemView {
         const leftButtons = buttonContainer.createDiv({ cls: "bluesky-left-buttons" });
         
         const linkBtn = leftButtons.createEl("button", {
-            text: "🔗",
+            text: "🔗 Link",
             cls: 'bluesky-link-btn',
             attr: {
-                'aria-label': 'Insert link (Ctrl+L)',
-                'title': 'Insert link (Ctrl+L)'
+                'aria-label': 'Select text and click to add link',
+                'title': 'Select text and click to add link'
             }
         });
 
