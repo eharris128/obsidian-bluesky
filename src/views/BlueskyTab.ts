@@ -2,6 +2,7 @@ import { ItemView, Notice, WorkspaceLeaf } from "obsidian";
 import { BlueskyBot } from '@/bluesky';
 import type BlueskyPlugin from '@/main';
 import { BLUESKY_TITLE, VIEW_TYPE_TAB } from '@/consts';
+import { LinkModal } from '@/modals/LinkModal';
 
 export class BlueskyTab extends ItemView {
     private readonly plugin: BlueskyPlugin;
@@ -9,6 +10,9 @@ export class BlueskyTab extends ItemView {
     private posts: string[] = [''];
     private isPosting: boolean = false;
     private readonly MAX_CHARS = 300;
+    private linkMetadata: any = null;
+    private linkPreviewEl: HTMLElement | null = null;
+    private linkRanges: Array<{start: number, end: number, url: string, text: string}> = [];
 
     constructor(leaf: WorkspaceLeaf, plugin: BlueskyPlugin) {
         super(leaf);
@@ -28,21 +32,271 @@ export class BlueskyTab extends ItemView {
         return "megaphone";
     }
 
-    private handlePostChange(index: number, event: Event) {
-        const input = event.target as HTMLTextAreaElement;
-        this.posts[index] = input.value;
+    private handleEditorChange(index: number, event: Event) {
+        const editor = event.target as HTMLElement;
+        const text = this.getEditorText(editor);
+        this.posts[index] = text;
 
-        const counter = input.parentElement?.querySelector('.bluesky-char-counter');
+        const counter = editor.parentElement?.querySelector('.bluesky-char-counter');
         if (counter) {
-            counter.textContent = `${input.value.length}/${this.MAX_CHARS}`;
-            if (input.value.length > this.MAX_CHARS) {
+            counter.textContent = `${text.length}/${this.MAX_CHARS}`;
+            if (text.length > this.MAX_CHARS) {
                 counter.classList.add('exceeded');
             } else {
                 counter.classList.remove('exceeded');
             }
         }
 
+        if (index === 0) {
+            this.detectAndPreviewLink(text);
+        }
+
         this.updateButtonStates();
+    }
+
+    private getEditorText(editor: HTMLElement): string {
+        return editor.textContent || '';
+    }
+
+    private extractLinksFromEditor(editor: HTMLElement): Array<{start: number, end: number, url: string, text: string}> {
+        const links: Array<{start: number, end: number, url: string, text: string}> = [];
+        const text = this.getEditorText(editor);
+        const linkElements = editor.querySelectorAll('.bluesky-link');
+        
+        linkElements.forEach(linkEl => {
+            const linkText = linkEl.textContent || '';
+            const url = linkEl.getAttribute('data-url') || '';
+            
+            if (linkText && url) {
+                const start = text.indexOf(linkText);
+                if (start !== -1) {
+                    links.push({
+                        start: start,
+                        end: start + linkText.length,
+                        url: url,
+                        text: linkText
+                    });
+                }
+            }
+        });
+        
+        return links;
+    }
+
+    private handlePaste(event: ClipboardEvent) {
+        event.preventDefault();
+        const text = event.clipboardData?.getData('text/plain') || '';
+        document.execCommand('insertText', false, text);
+    }
+
+    private async detectAndPreviewLink(text: string) {
+        const url = typeof text === 'string' && text.startsWith('http') ? text : this.bot.extractFirstUrl(text);
+        
+        if (!url && this.linkPreviewEl) {
+            this.linkPreviewEl.remove();
+            this.linkPreviewEl = null;
+            this.linkMetadata = null;
+            return;
+        }
+
+        if (url && (!this.linkMetadata || this.linkMetadata.url !== url)) {
+            try {
+                if (this.linkPreviewEl) {
+                    this.linkPreviewEl.addClass('loading');
+                }
+
+                const metadata = await this.bot.fetchLinkMetadata(url);
+                
+                if (metadata) {
+                    this.linkMetadata = metadata;
+                    this.showLinkPreview(metadata);
+                } else {
+                    // If metadata fetch failed, remove any existing preview
+                    if (this.linkPreviewEl) {
+                        this.linkPreviewEl.remove();
+                        this.linkPreviewEl = null;
+                    }
+                }
+            } catch (error) {
+                console.warn('Error fetching link preview:', error);
+                if (this.linkPreviewEl) {
+                    this.linkPreviewEl.remove();
+                    this.linkPreviewEl = null;
+                }
+            }
+        }
+    }
+
+    private showLinkPreview(metadata: any) {
+        const container = this.containerEl.querySelector('.bluesky-compose');
+        if (!container) return;
+
+        if (this.linkPreviewEl) {
+            this.linkPreviewEl.remove();
+        }
+
+        this.linkPreviewEl = container.createDiv({ cls: 'bluesky-link-preview' });
+        
+        const previewContent = this.linkPreviewEl.createDiv({ cls: 'bluesky-link-preview-content' });
+        
+        if (metadata.image) {
+            previewContent.createEl('img', {
+                cls: 'bluesky-link-preview-image',
+                attr: { src: metadata.image }
+            });
+        }
+        
+        const textContent = previewContent.createDiv({ cls: 'bluesky-link-preview-text' });
+        textContent.createEl('div', {
+            cls: 'bluesky-link-preview-title',
+            text: metadata.title
+        });
+        
+        if (metadata.description) {
+            textContent.createEl('div', {
+                cls: 'bluesky-link-preview-description',
+                text: metadata.description
+            });
+        }
+        
+        textContent.createEl('div', {
+            cls: 'bluesky-link-preview-url',
+            text: new URL(metadata.url).hostname
+        });
+
+        const removeBtn = this.linkPreviewEl.createEl('button', {
+            cls: 'bluesky-link-preview-remove',
+            attr: { 'aria-label': 'Remove link preview' }
+        });
+        this.plugin.addIcon(removeBtn, 'lucide-x');
+        removeBtn.addEventListener('click', () => {
+            this.linkMetadata = null;
+            this.linkPreviewEl?.remove();
+            this.linkPreviewEl = null;
+        });
+    }
+
+    private applyLinkStyling(textarea: HTMLTextAreaElement) {
+        // Add a visual indicator by changing the textarea's styling
+        // We'll add a CSS class and use a data attribute to track linked ranges
+        textarea.addClass('has-links');
+        
+        // Store link ranges as data attribute for CSS styling reference
+        textarea.setAttribute('data-link-ranges', JSON.stringify(this.linkRanges));
+        
+        // Add a subtle visual indicator next to the textarea
+        this.showLinkIndicators(textarea);
+    }
+
+    private showLinkIndicators(textarea: HTMLTextAreaElement) {
+        const container = textarea.parentElement;
+        if (!container) return;
+
+        // Remove existing indicators
+        container.querySelectorAll('.bluesky-link-indicator').forEach(el => el.remove());
+
+        // Add indicators for each link
+        this.linkRanges.forEach((range, index) => {
+            const indicator = container.createDiv({ cls: 'bluesky-link-indicator' });
+            indicator.textContent = `🔗 "${range.text}" → ${new URL(range.url).hostname}`;
+            
+            // Add remove button for each link
+            const removeBtn = indicator.createEl('button', {
+                cls: 'bluesky-link-indicator-remove',
+                text: '×',
+                attr: { 'aria-label': `Remove link from "${range.text}"` }
+            });
+            
+            removeBtn.addEventListener('click', () => {
+                this.removeLinkRange(index, textarea);
+            });
+        });
+    }
+
+    private removeLinkRange(index: number, textarea: HTMLTextAreaElement) {
+        const removedRange = this.linkRanges.splice(index, 1)[0];
+        
+        if (this.linkRanges.length === 0) {
+            textarea.removeClass('has-links');
+            textarea.removeAttribute('data-link-ranges');
+        } else {
+            textarea.setAttribute('data-link-ranges', JSON.stringify(this.linkRanges));
+        }
+        
+        this.showLinkIndicators(textarea);
+        new Notice(`Link removed from "${removedRange.text}"`);
+    }
+
+    private handleKeyDown(e: KeyboardEvent, editor: HTMLElement) {
+        // Try Ctrl+L instead of Ctrl+K (which Obsidian uses for its own link insertion)
+        if ((e.key === 'l' || e.key === 'L') && (e.ctrlKey || e.metaKey)) {
+            e.preventDefault();
+            e.stopPropagation();
+            this.handleLinkInsertion(editor);
+        }
+    }
+
+    private handleLinkInsertion(editor: HTMLElement) {
+        const selection = window.getSelection();
+        if (!selection || selection.rangeCount === 0) {
+            new Notice('Please select text to turn into a link');
+            return;
+        }
+
+        const range = selection.getRangeAt(0);
+        const selectedText = range.toString().trim();
+
+        if (!selectedText) {
+            new Notice('Please select text to turn into a link');
+            return;
+        }
+
+        new LinkModal(this.app, async (url) => {
+            if (!url) return;
+
+            // Create a link element
+            const linkElement = document.createElement('span');
+            linkElement.className = 'bluesky-link';
+            linkElement.textContent = selectedText;
+            linkElement.setAttribute('data-url', url);
+            linkElement.setAttribute('title', url);
+            
+            // Replace the selected text with the link element
+            range.deleteContents();
+            range.insertNode(linkElement);
+            
+            // Clear selection
+            selection.removeAllRanges();
+            
+            // Update the stored post content
+            const index = parseInt(editor.getAttribute('data-index') || '0');
+            this.posts[index] = this.getEditorText(editor);
+            
+            // Store link information for posting
+            if (!this.linkRanges) {
+                this.linkRanges = [];
+            }
+            
+            this.linkRanges.push({
+                start: 0, // We'll calculate this properly when posting
+                end: 0,
+                url: url,
+                text: selectedText
+            });
+            
+            this.updateButtonStates();
+            
+            // Show a visual indicator that the link has been added
+            new Notice(`Link added to "${selectedText}"`);
+            
+            // Try to show link preview, but don't let errors prevent link insertion
+            try {
+                await this.detectAndPreviewLink(url);
+            } catch (error) {
+                console.warn('Could not fetch link preview:', error);
+                // Link is still added, just without preview
+            }
+        }).open();
     }
 
     private updateButtonStates() {
@@ -79,14 +333,19 @@ export class BlueskyTab extends ItemView {
         this.plugin.addIcon(closeBtn, 'lucide-x');
         closeBtn.addEventListener('click', () => this.removePost(index));
 
-        const textarea = postContainer.createEl("textarea", {
+        const editor = postContainer.createDiv({
+            cls: 'bluesky-editor',
             attr: {
-                placeholder: "Continue thread...",
-                rows: "4"
-            },
-            value: ''
+                contenteditable: 'true',
+                'data-placeholder': 'Continue thread...',
+                'data-index': index.toString()
+            }
         });
-        textarea.addEventListener('input', (e) => this.handlePostChange(index, e));
+        
+        editor.textContent = '';
+        editor.addEventListener('input', (e) => this.handleEditorChange(index, e));
+        editor.addEventListener('keydown', (e) => this.handleKeyDown(e, editor));
+        editor.addEventListener('paste', (e) => this.handlePaste(e));
 
         postContainer.createDiv({
             cls: 'bluesky-char-counter',
@@ -118,11 +377,16 @@ export class BlueskyTab extends ItemView {
             this.isPosting = true;
             await this.bot.login();
             if (validPosts.length === 1) {
-                success = await this.bot.createPost(validPosts[0]);
+                // Extract links from the editor for the first post
+                const editor = this.containerEl.querySelector('.bluesky-editor') as HTMLElement;
+                const editorLinks = editor ? this.extractLinksFromEditor(editor) : [];
+                success = await this.bot.createPost(validPosts[0], this.linkMetadata, editorLinks);
             } else {
                 success = await this.bot.createThread(validPosts);
             }
             this.posts = [''];
+            this.linkMetadata = null;
+            this.linkRanges = [];
         } catch (error) {
             console.error('Failed to post:', error);
             if (error.message.includes('Failed to fetch')) {
@@ -146,20 +410,28 @@ export class BlueskyTab extends ItemView {
         const container = this.containerEl.children[1];
         container.empty();
         container.addClass('bluesky-content');
+        
+        // Clear link ranges when redisplaying
+        this.linkRanges = [];
 
         container.createEl("h4", { text: "Bluesky" });
 
         this.posts.forEach((post, index) => {
             const postContainer = container.createDiv({ cls: 'bluesky-compose' });
 
-            const textarea = postContainer.createEl("textarea", {
+            const editor = postContainer.createDiv({
+                cls: 'bluesky-editor',
                 attr: {
-                    placeholder: index === 0 ? "What's on your mind?" : "Continue thread...",
-                    rows: "4"
-                },
-                value: post
+                    contenteditable: 'true',
+                    'data-placeholder': index === 0 ? "What's on your mind?" : "Continue thread...",
+                    'data-index': index.toString()
+                }
             });
-            textarea.addEventListener('input', (e) => this.handlePostChange(index, e));
+            
+            editor.textContent = post;
+            editor.addEventListener('input', (e) => this.handleEditorChange(index, e));
+            editor.addEventListener('keydown', (e) => this.handleKeyDown(e, editor));
+            editor.addEventListener('paste', (e) => this.handlePaste(e));
 
             postContainer.createDiv({
                 cls: 'bluesky-char-counter',
@@ -170,6 +442,23 @@ export class BlueskyTab extends ItemView {
         const buttonContainer = container.createDiv({ cls: "bluesky-buttons" });
 
         const leftButtons = buttonContainer.createDiv({ cls: "bluesky-left-buttons" });
+        
+        const linkBtn = leftButtons.createEl("button", {
+            text: "🔗",
+            cls: 'bluesky-link-btn',
+            attr: {
+                'aria-label': 'Insert link (Ctrl+L)',
+                'title': 'Insert link (Ctrl+L)'
+            }
+        });
+
+        linkBtn.addEventListener('click', () => {
+            const editor = this.containerEl.querySelector('.bluesky-editor') as HTMLElement;
+            if (editor) {
+                this.handleLinkInsertion(editor);
+            }
+        });
+        
         const addThreadBtn = leftButtons.createEl("button", {
             text: "Add to thread",
             cls: 'add-bluesky-thread-btn',

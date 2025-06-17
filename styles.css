@@ -25,6 +25,41 @@
     border-radius: 4px;
 }
 
+.bluesky-editor {
+    font-size: 15px;
+    width: 100%;
+    max-width: 513.667px;
+    min-height: 80px;
+    padding: 8px;
+    padding-right: 32px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 4px;
+    background: var(--background-primary);
+    outline: none;
+    font-family: inherit;
+    line-height: 1.4;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+}
+
+.bluesky-editor:focus {
+    border-color: var(--interactive-accent);
+    box-shadow: 0 0 0 2px var(--interactive-accent-hover);
+}
+
+.bluesky-editor:empty::before {
+    content: attr(data-placeholder);
+    color: var(--text-faint);
+    pointer-events: none;
+}
+
+.bluesky-link {
+    color: var(--interactive-accent);
+    text-decoration: underline;
+    text-decoration-color: var(--interactive-accent);
+    cursor: pointer;
+}
+
 .bluesky-buttons {
     display: flex;
     justify-content: space-between;
@@ -44,6 +79,14 @@
     padding: 4px 8px;
     height: 32px;
     line-height: 24px;
+}
+
+.bluesky-link-btn {
+    color: var(--text-muted);
+    padding: 4px 8px;
+    height: 32px;
+    line-height: 24px;
+    font-size: 16px;
 }
 
 .bluesky-buttons button {
@@ -109,4 +152,126 @@
     &:hover {
         color: var(--text-error);
     }
+}
+
+.bluesky-link-preview {
+    margin-top: 12px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+    background: var(--background-secondary);
+}
+
+.bluesky-link-preview.loading {
+    opacity: 0.6;
+}
+
+.bluesky-link-preview-content {
+    display: flex;
+    min-height: 80px;
+}
+
+.bluesky-link-preview-image {
+    width: 120px;
+    height: 120px;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.bluesky-link-preview-text {
+    padding: 12px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    overflow: hidden;
+}
+
+.bluesky-link-preview-title {
+    font-weight: 600;
+    font-size: 14px;
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+.bluesky-link-preview-description {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.4;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+.bluesky-link-preview-url {
+    font-size: 12px;
+    color: var(--text-faint);
+    margin-top: auto;
+}
+
+.bluesky-link-preview-remove {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 24px;
+    height: 24px;
+    padding: 4px;
+    background: var(--background-primary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.8;
+    transition: opacity 0.2s ease;
+}
+
+.bluesky-link-preview-remove:hover {
+    opacity: 1;
+    background: var(--background-primary-alt);
+}
+
+.bluesky-compose textarea.has-links {
+    border-left: 3px solid var(--interactive-accent);
+    background: var(--background-secondary);
+}
+
+.bluesky-link-indicator {
+    margin-top: 4px;
+    padding: 6px 8px;
+    background: var(--background-modifier-border);
+    border-radius: 4px;
+    font-size: 12px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    border-left: 2px solid var(--interactive-accent);
+}
+
+.bluesky-link-indicator-remove {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 2px;
+    font-size: 14px;
+    line-height: 1;
+    opacity: 0.7;
+    transition: opacity 0.2s ease;
+}
+
+.bluesky-link-indicator-remove:hover {
+    opacity: 1;
+    color: var(--text-error);
 }
