@@ -23,3 +23,8 @@ data.json
 
 # Environmental variables
 .env
+
+# E2E testing (wdio-obsidian-service)
+.obsidian-cache/
+test/plugin-dist/
+test/logs/
