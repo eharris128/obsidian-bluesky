@@ -11,8 +11,7 @@ jobs:
   create-release:
     if: >
       github.event.pull_request.merged == true &&
-      startsWith(github.event.pull_request.head.ref, 'release/') &&
-      matches(github.event.pull_request.head.ref, '^release/(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-(0|[1-9A-Za-z-][0-9A-Za-z-]*)(\.[0-9A-Za-z-]+)*)?(\+[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$')
+      startsWith(github.event.pull_request.head.ref, 'release/')
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -22,9 +21,15 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Extract version from branch name
+      - name: Extract and validate version from branch name
         id: extract_version
-        run: echo "VERSION=${GITHUB_HEAD_REF#release/}" >> $GITHUB_OUTPUT
+        run: |
+          VERSION="${GITHUB_HEAD_REF#release/}"
+          if ! echo "$VERSION" | grep -Eq '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-(0|[1-9A-Za-z-][0-9A-Za-z-]*)(\.[0-9A-Za-z-]+)*)?(\+[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$'; then
+            echo "Branch name 'release/$VERSION' is not a valid semver version" >&2
+            exit 1
+          fi
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Use Node.js
         uses: actions/setup-node@v6
