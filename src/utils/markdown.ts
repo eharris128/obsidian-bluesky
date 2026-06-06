@@ -42,6 +42,39 @@ function resolveMarkdownUrl(target: string): string | null {
   return null
 }
 
+// Find bare web links (https://..., example.com) in plain text, the same way
+// detectFacets will at post time, returning character-offset ranges.
+export function detectBareLinks(text: string): MarkdownLink[] {
+  const probe = new RichText({ text })
+  probe.detectFacetsWithoutResolution()
+  if (!probe.facets) return []
+
+  // Facets use UTF-8 byte offsets - map them back to character offsets
+  const encoder = new TextEncoder()
+  const byteToChar: Record<number, number> = {}
+  let byte = 0
+  let char = 0
+  for (const ch of text) {
+    byteToChar[byte] = char
+    byte += encoder.encode(ch).length
+    char += ch.length
+  }
+  byteToChar[byte] = char
+
+  const links: MarkdownLink[] = []
+  for (const facet of probe.facets) {
+    const feature = facet.features[0]
+    if (!AppBskyRichtextFacet.isLink(feature)) continue
+
+    const start = byteToChar[facet.index.byteStart]
+    const end = byteToChar[facet.index.byteEnd]
+    if (start === undefined || end === undefined) continue
+
+    links.push({ start, end, url: feature.uri, text: text.slice(start, end) })
+  }
+  return links
+}
+
 // Find the first markdown web link in the text, returning its position in the
 // source text (markdown syntax included) along with its display text and URL.
 export function findFirstMarkdownLink(input: string): MarkdownLink | null {
