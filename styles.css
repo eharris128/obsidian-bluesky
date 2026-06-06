@@ -282,3 +282,15 @@
     opacity: 1;
     color: var(--text-error);
 }
+
+.bluesky-confirm-preview {
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+    max-height: 40vh;
+    overflow-y: auto;
+    padding: var(--size-4-3);
+    margin-bottom: var(--size-4-2);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-m);
+    background-color: var(--background-secondary);
+}
