@@ -1,5 +1,6 @@
 import { App, Editor, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
 import { createBlueskyPost } from '@/bluesky';
+import { ConfirmPostModal } from '@/modals/ConfirmPostModal';
 import { BlueskyTab } from '@/views/BlueskyTab';
 import { BLUESKY_TITLE, VIEW_TYPE_TAB } from '@/consts';
 import { setIcon } from "obsidian";
@@ -8,12 +9,14 @@ interface BlueskyPluginSettings {
     blueskyIdentifier: string;
     blueskyAppPassword: string;
     postArchiveFolder: string;
+    confirmBeforePosting: boolean;
 }
 
 const INITIAL_BLUESKY_SETTINGS: BlueskyPluginSettings = {
     blueskyIdentifier: '',
     blueskyAppPassword: '',
-    postArchiveFolder: ''
+    postArchiveFolder: '',
+    confirmBeforePosting: true
 }
 
 export default class BlueskyPlugin extends Plugin {
@@ -43,16 +46,12 @@ export default class BlueskyPlugin extends Plugin {
                     return;
                 }
 
-                try {
-                    await createBlueskyPost(this, selectedText);
-                } catch (error) {
-                    if (error.message.includes('Failed to fetch')) {
-                        new Notice('Failed to post. Could not connect to the internet.')
-                      } else if (error.message.includes('Invalid identifier or password')) {
-                        new Notice('Invalid bluesky handle or password. Please check your bluesky plugin settings.')
-                      } else {
-                        new Notice(`Failed to post: ${error.message}`);
-                      }
+                if (this.settings.confirmBeforePosting) {
+                    new ConfirmPostModal(this.app, selectedText, () => {
+                        this.postHighlightedText(selectedText);
+                    }).open();
+                } else {
+                    await this.postHighlightedText(selectedText);
                 }
             }
         });
@@ -73,6 +72,20 @@ export default class BlueskyPlugin extends Plugin {
         });
 
         this.addSettingTab(new BlueskySettingTab(this.app, this));
+    }
+
+    async postHighlightedText(text: string) {
+        try {
+            await createBlueskyPost(this, text);
+        } catch (error) {
+            if (error.message.includes('Failed to fetch')) {
+                new Notice('Failed to post. Could not connect to the internet.')
+            } else if (error.message.includes('Invalid identifier or password')) {
+                new Notice('Invalid bluesky handle or password. Please check your bluesky plugin settings.')
+            } else {
+                new Notice(`Failed to post: ${error.message}`);
+            }
+        }
     }
 
     async loadSettings() {
@@ -155,6 +168,16 @@ class BlueskySettingTab extends PluginSettingTab {
                 .setValue(this.plugin.settings.postArchiveFolder)
                 .onChange(async (value) => {
                     this.plugin.settings.postArchiveFolder = value;
+                    await this.plugin.saveSettings();
+                }));
+
+        new Setting(containerEl)
+            .setName('Confirm before posting')
+            .setDesc('Show a preview of the highlighted text and ask for confirmation before posting it. Turn off to post immediately.')
+            .addToggle(toggle => toggle
+                .setValue(this.plugin.settings.confirmBeforePosting)
+                .onChange(async (value) => {
+                    this.plugin.settings.confirmBeforePosting = value;
                     await this.plugin.saveSettings();
                 }));
     }
