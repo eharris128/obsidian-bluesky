@@ -1,5 +1,5 @@
-import { Notice, requestUrl } from 'obsidian';
-import { AtpAgent, RichText, AppBskyEmbedExternal, BlobRef } from '@atproto/api'
+import { Notice, normalizePath, requestUrl } from 'obsidian';
+import { AtpAgent, RichText, AppBskyEmbedExternal, BlobRef, type $Typed } from '@atproto/api'
 import type BlueskyPlugin from '@/main'
 import { logger } from '@/utils/logger'
 
@@ -15,7 +15,7 @@ interface ThreadPost {
   reply?: { root: { uri: string; cid: string }, parent: { uri: string; cid: string } }
 }
 
-interface LinkMetadata {
+export interface LinkMetadata {
   url: string
   title: string
   description?: string
@@ -52,7 +52,7 @@ export class BlueskyBot {
 
   async fetchBlueskyProfileMetadata(url: string): Promise<LinkMetadata | null> {
     try {
-      const handleMatch = url.match(/bsky\.app\/profile\/([^\/\?]+)/);
+      const handleMatch = url.match(/bsky\.app\/profile\/([^/?]+)/);
       if (!handleMatch) return null;
       
       const handle = handleMatch[1];
@@ -245,7 +245,7 @@ export class BlueskyBot {
   }
 
   extractFirstUrl(text: string): string | null {
-    const urlRegex = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/
+    const urlRegex = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&//=]*)/
     const match = text.match(urlRegex)
     return match ? match[0] : null
   }
@@ -285,7 +285,7 @@ export class BlueskyBot {
         }
       }
       
-      let embed: AppBskyEmbedExternal.Main | undefined
+      let embed: $Typed<AppBskyEmbedExternal.Main> | undefined
       
       if (linkMetadata) {
         let thumb: BlobRef | undefined
@@ -308,12 +308,13 @@ export class BlueskyBot {
         }
       }
       
-      await this.agent.post({
+      const result = await this.agent.post({
         text: richText.text,
         facets: richText.facets,
         embed
       })
       new Notice('Successfully posted to Bluesky!');
+      await this.archivePosts([{ text: richText.text, url: this.getPostUrl(result.uri) }])
       return true
     } catch (error) {
       logger.error('Failed to post:', error)
@@ -331,6 +332,7 @@ export class BlueskyBot {
     
     let lastPost: { uri: string; cid: string } | null = null
     let rootPost: { uri: string; cid: string } | null = null
+    const published: Array<{ text: string; url: string }> = []
 
     for (const text of posts) {
       const rt = new RichText({ text })
@@ -355,9 +357,50 @@ export class BlueskyBot {
         rootPost = { uri: result.uri, cid: result.cid }
       }
       lastPost = { uri: result.uri, cid: result.cid }
+      published.push({ text: rt.text, url: this.getPostUrl(result.uri) })
     }
     new Notice('Successfully posted to Bluesky!');
+    await this.archivePosts(published)
     return true
+  }
+
+  // Convert an AT URI (at://did:plc:xxx/app.bsky.feed.post/rkey) to a bsky.app link
+  private getPostUrl(uri: string): string {
+    const rkey = uri.split('/').pop()
+    const actor = this.agent.session?.handle ?? this.agent.session?.did
+    return `https://bsky.app/profile/${actor}/post/${rkey}`
+  }
+
+  // Save a copy of published posts to the configured vault folder
+  private async archivePosts(posts: Array<{ text: string; url: string }>): Promise<void> {
+    const folder = this.plugin.settings.postArchiveFolder?.trim()
+    if (!folder || !posts.length) return
+
+    try {
+      const vault = this.plugin.app.vault
+      const folderPath = normalizePath(folder)
+      if (!vault.getFolderByPath(folderPath)) {
+        await vault.createFolder(folderPath)
+      }
+
+      // Local time, formatted as YYYY-MM-DD HH-mm-ss for a filesystem-safe filename
+      const now = new Date()
+      const pad = (n: number) => String(n).padStart(2, '0')
+      const timestamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`
+      const body = posts
+        .map(post => `${post.text}\n\n${post.url}`)
+        .join('\n\n---\n\n') + '\n'
+
+      let path = normalizePath(`${folderPath}/Bluesky ${timestamp}.md`)
+      if (vault.getAbstractFileByPath(path)) {
+        // Same-second collision - disambiguate with the post's record key
+        path = normalizePath(`${folderPath}/Bluesky ${timestamp} ${posts[0].url.split('/').pop()}.md`)
+      }
+      await vault.create(path, body)
+    } catch (error) {
+      logger.error('Failed to save post copy:', error)
+      new Notice(`Posted, but failed to save a local copy: ${error.message}`)
+    }
   }
 }
 

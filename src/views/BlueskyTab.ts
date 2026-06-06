@@ -1,5 +1,5 @@
 import { ItemView, Notice, WorkspaceLeaf } from "obsidian";
-import { BlueskyBot } from '@/bluesky';
+import { BlueskyBot, type LinkMetadata } from '@/bluesky';
 import type BlueskyPlugin from '@/main';
 import { BLUESKY_TITLE, VIEW_TYPE_TAB } from '@/consts';
 import { LinkModal } from '@/modals/LinkModal';
@@ -11,7 +11,7 @@ export class BlueskyTab extends ItemView {
     private posts: string[] = [''];
     private isPosting: boolean;
     private readonly MAX_CHARS = 300;
-    private linkMetadata: Map<number, any> = new Map(); // Track metadata per post index
+    private linkMetadata: Map<number, LinkMetadata> = new Map(); // Track metadata per post index
     private linkPreviewEls: Map<number, HTMLElement> = new Map(); // Track preview elements per post
     private linkRanges: Array<{start: number, end: number, url: string, text: string}> = [];
 
@@ -63,7 +63,7 @@ export class BlueskyTab extends ItemView {
 
     private autoStyleUrls(editor: HTMLElement) {
         const text = editor.textContent || '';
-        const urlRegex = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/g;
+        const urlRegex = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&//=]*)/g;
         
         // Find all URLs in the text
         const urls = [...text.matchAll(urlRegex)];
@@ -260,7 +260,7 @@ export class BlueskyTab extends ItemView {
         }
     }
 
-    private showLinkPreview(metadata: any, postIndex = 0) {
+    private showLinkPreview(metadata: LinkMetadata, postIndex = 0) {
         // Find the specific container for this post
         const containers = this.containerEl.querySelectorAll('.bluesky-compose');
         const container = containers[postIndex] as HTMLElement;

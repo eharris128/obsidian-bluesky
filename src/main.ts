@@ -7,11 +7,13 @@ import { setIcon } from "obsidian";
 interface BlueskyPluginSettings {
     blueskyIdentifier: string;
     blueskyAppPassword: string;
+    postArchiveFolder: string;
 }
 
 const INITIAL_BLUESKY_SETTINGS: BlueskyPluginSettings = {
     blueskyIdentifier: '',
-    blueskyAppPassword: ''
+    blueskyAppPassword: '',
+    postArchiveFolder: ''
 }
 
 export default class BlueskyPlugin extends Plugin {
@@ -142,6 +144,17 @@ class BlueskySettingTab extends PluginSettingTab {
                 .setValue(this.plugin.settings.blueskyAppPassword)
                 .onChange(async (value) => {
                     this.plugin.settings.blueskyAppPassword = value;
+                    await this.plugin.saveSettings();
+                }));
+
+        new Setting(containerEl)
+            .setName('Save posts to folder')
+            .setDesc('Vault folder where a copy of each published post is saved, including a link to the post. Leave empty to disable.')
+            .addText(text => text
+                .setPlaceholder('e.g. Bluesky Posts')
+                .setValue(this.plugin.settings.postArchiveFolder)
+                .onChange(async (value) => {
+                    this.plugin.settings.postArchiveFolder = value;
                     await this.plugin.saveSettings();
                 }));
     }
