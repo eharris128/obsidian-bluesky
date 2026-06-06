@@ -18,7 +18,7 @@ jobs:
       contents: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -27,13 +27,13 @@ jobs:
         run: echo "VERSION=${GITHUB_HEAD_REF#release/}" >> $GITHUB_OUTPUT
 
       - name: Use Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v6
         with:
-          node-version: "18.x"
+          node-version: "24.x"
 
       - name: Build plugin
         run: |
-          npm install
+          npm ci
           npm run build
 
       - name: Create Tag

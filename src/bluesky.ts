@@ -1,5 +1,5 @@
 import { Notice, requestUrl } from 'obsidian';
-import { AtpAgent, RichText, AppBskyEmbedExternal, BlobRef } from '@atproto/api'
+import { AtpAgent, RichText, AppBskyEmbedExternal, BlobRef, type $Typed } from '@atproto/api'
 import type BlueskyPlugin from '@/main'
 import { logger } from '@/utils/logger'
 
@@ -15,7 +15,7 @@ interface ThreadPost {
   reply?: { root: { uri: string; cid: string }, parent: { uri: string; cid: string } }
 }
 
-interface LinkMetadata {
+export interface LinkMetadata {
   url: string
   title: string
   description?: string
@@ -52,7 +52,7 @@ export class BlueskyBot {
 
   async fetchBlueskyProfileMetadata(url: string): Promise<LinkMetadata | null> {
     try {
-      const handleMatch = url.match(/bsky\.app\/profile\/([^\/\?]+)/);
+      const handleMatch = url.match(/bsky\.app\/profile\/([^/?]+)/);
       if (!handleMatch) return null;
       
       const handle = handleMatch[1];
@@ -245,7 +245,7 @@ export class BlueskyBot {
   }
 
   extractFirstUrl(text: string): string | null {
-    const urlRegex = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/
+    const urlRegex = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&//=]*)/
     const match = text.match(urlRegex)
     return match ? match[0] : null
   }
@@ -285,7 +285,7 @@ export class BlueskyBot {
         }
       }
       
-      let embed: AppBskyEmbedExternal.Main | undefined
+      let embed: $Typed<AppBskyEmbedExternal.Main> | undefined
       
       if (linkMetadata) {
         let thumb: BlobRef | undefined
