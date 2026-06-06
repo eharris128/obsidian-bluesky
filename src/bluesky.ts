@@ -2,6 +2,7 @@ import { Notice, normalizePath, requestUrl } from 'obsidian';
 import { AtpAgent, RichText, AppBskyEmbedExternal, BlobRef, type $Typed } from '@atproto/api'
 import type BlueskyPlugin from '@/main'
 import { logger } from '@/utils/logger'
+import { parseMarkdownLinks, type MarkdownLink } from '@/utils/markdown'
 
 // Utility function to decode HTML entities
 const decodeHtmlEntities = (text: string): string => {
@@ -250,40 +251,63 @@ export class BlueskyBot {
     return match ? match[0] : null
   }
 
+  // Convert character-offset link ranges into UTF-8 byte-offset link facets
+  private addLinkFacets(richText: RichText, ranges: MarkdownLink[]): void {
+    const encoder = new TextEncoder()
+    for (const range of ranges) {
+      // Calculate byte positions (Bluesky uses UTF-8 byte positions)
+      const textBefore = richText.text.substring(0, range.start)
+      const linkText = richText.text.substring(range.start, range.end)
+
+      const byteStart = encoder.encode(textBefore).length
+      const byteEnd = byteStart + encoder.encode(linkText).length
+
+      richText.facets = richText.facets || []
+      richText.facets.push({
+        index: {
+          byteStart: byteStart,
+          byteEnd: byteEnd
+        },
+        features: [{
+          $type: 'app.bsky.richtext.facet#link',
+          uri: range.url
+        }]
+      })
+    }
+  }
+
+  // Build a RichText with auto-detected facets, markdown link facets, and
+  // facets for any manually added links
+  private async buildRichText(text: string, linkRanges?: Array<{start: number, end: number, url: string, text: string}>): Promise<RichText> {
+    // Convert markdown links ([text](url)) into display text + link facets
+    const parsed = parseMarkdownLinks(text)
+    const richText = new RichText({ text: parsed.text })
+    await richText.detectFacets(this.agent)
+
+    const allRanges: MarkdownLink[] = [...parsed.links]
+
+    // Add manual link facets for selected text. Recompute offsets against the
+    // parsed text since stripping markdown syntax shifts character positions.
+    if (linkRanges && linkRanges.length > 0) {
+      for (const range of linkRanges) {
+        const start = parsed.text.indexOf(range.text)
+        if (start !== -1) {
+          allRanges.push({ start, end: start + range.text.length, url: range.url, text: range.text })
+        }
+      }
+    }
+
+    this.addLinkFacets(richText, allRanges)
+    return richText
+  }
+
   async createPost(text: string, linkMetadata?: LinkMetadata, linkRanges?: Array<{start: number, end: number, url: string, text: string}>): Promise<boolean> {
     try {
       if (!this.agent.session?.did) {
         throw new Error('Not logged in')
       }
-      
-      const richText = new RichText({ text })
-      await richText.detectFacets(this.agent)
-      
-      // Add manual link facets for selected text
-      if (linkRanges && linkRanges.length > 0) {
-        for (const range of linkRanges) {
-          // Calculate byte positions (Bluesky uses UTF-8 byte positions)
-          const encoder = new TextEncoder()
-          const textBefore = text.substring(0, range.start)
-          const linkText = text.substring(range.start, range.end)
-          
-          const byteStart = encoder.encode(textBefore).length
-          const byteEnd = byteStart + encoder.encode(linkText).length
-          
-          // Add link facet
-          richText.facets = richText.facets || []
-          richText.facets.push({
-            index: {
-              byteStart: byteStart,
-              byteEnd: byteEnd
-            },
-            features: [{
-              $type: 'app.bsky.richtext.facet#link',
-              uri: range.url
-            }]
-          })
-        }
-      }
+
+      const richText = await this.buildRichText(text, linkRanges)
       
       let embed: $Typed<AppBskyEmbedExternal.Main> | undefined
       
@@ -327,17 +351,16 @@ export class BlueskyBot {
     }
   }
 
-  async createThread(posts: string[]): Promise<boolean> {
+  async createThread(posts: string[], linkRanges?: Array<Array<{start: number, end: number, url: string, text: string}>>): Promise<boolean> {
     if (!posts.length) return false
-    
+
     let lastPost: { uri: string; cid: string } | null = null
     let rootPost: { uri: string; cid: string } | null = null
     const published: Array<{ text: string; url: string }> = []
 
-    for (const text of posts) {
-      const rt = new RichText({ text })
-      await rt.detectFacets(this.agent) 
-      
+    for (let i = 0; i < posts.length; i++) {
+      const rt = await this.buildRichText(posts[i], linkRanges?.[i])
+
       const post: ThreadPost = { text: rt.text }
       
       if (lastPost) {

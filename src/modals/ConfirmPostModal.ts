@@ -1,4 +1,5 @@
 import { App, Modal, Setting } from "obsidian";
+import { parseMarkdownLinks } from "@/utils/markdown";
 
 export class ConfirmPostModal extends Modal {
     private readonly text: string;
@@ -7,7 +8,9 @@ export class ConfirmPostModal extends Modal {
 
     constructor(app: App, text: string, onConfirm: () => void) {
         super(app);
-        this.text = text;
+        // Preview the text as it will be posted, with markdown link syntax
+        // replaced by the link's display text
+        this.text = parseMarkdownLinks(text).text;
         this.onConfirm = onConfirm;
     }
 
