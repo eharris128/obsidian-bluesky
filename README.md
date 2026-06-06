@@ -19,6 +19,24 @@ A new `megaphone` icon will appear in the left sidebar after you install the plu
     - Click "Post" to post to Bluesky.
 - If you prefer to use the command palette, you can run the `Open Bluesky tab` command.
 
+## Testing
+
+```bash
+npm run test:e2e
+```
+
+Runs provider-free UI smoke tests against a real, sandboxed Obsidian instance
+via [wdio-obsidian-service](https://github.com/jesse-r-s-hines/wdio-obsidian-service) —
+no Bluesky credentials, no network calls, no contact with your real vault. See
+[test/README.md](test/README.md) for details.
+
+> [!WARNING]
+> When touching the test config, never point `plugins:` in `wdio.conf.mts` at
+> the repo root (`"."`). wdio-obsidian-service copies `data.json` — which holds
+> your real Bluesky app password — from the plugin directory into every test
+> vault. Always go through the staged copy in `test/plugin-dist/`
+> (`scripts/stage-plugin.mjs`).
+
 ## Say Hi
 - [Bluesky](https://bsky.app/profile/evanharris.bsky.social)
 
