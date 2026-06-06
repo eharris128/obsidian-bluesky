@@ -4,6 +4,7 @@ import type BlueskyPlugin from '@/main';
 import { BLUESKY_TITLE, VIEW_TYPE_TAB } from '@/consts';
 import { LinkModal } from '@/modals/LinkModal';
 import { logger } from '@/utils/logger';
+import { parseMarkdownLinks, findFirstMarkdownLink } from '@/utils/markdown';
 
 export class BlueskyTab extends ItemView {
     private readonly plugin: BlueskyPlugin;
@@ -35,10 +36,13 @@ export class BlueskyTab extends ItemView {
 
     private handleEditorChange(index: number, event: Event) {
         const editor = event.target as HTMLElement;
-        
+
+        // Convert completed markdown links ([text](url)) into styled links
+        this.convertMarkdownLinks(editor);
+
         // First, fix any links that have been extended by typing
         this.fixExtendedLinks(editor);
-        
+
         // Auto-detect and style pasted URLs
         this.autoStyleUrls(editor);
         
@@ -113,6 +117,73 @@ export class BlueskyTab extends ItemView {
         }
     }
 
+
+    // Replace completed markdown link syntax ([text](url)) in the editor with
+    // styled link elements, so the editor shows what will actually be posted
+    private convertMarkdownLinks(editor: HTMLElement) {
+        let match = findFirstMarkdownLink(editor.textContent || '');
+
+        while (match) {
+            // The markdown syntax may span several DOM nodes (e.g. a partially
+            // auto-styled URL), so locate it by text offset and replace the range
+            const range = this.createRangeFromTextOffsets(editor, match.start, match.end);
+            if (!range) return;
+
+            const linkElement = document.createElement('span');
+            linkElement.className = 'bluesky-link';
+            linkElement.textContent = match.text;
+            linkElement.setAttribute('data-url', match.url);
+            linkElement.setAttribute('title', match.url);
+            linkElement.setAttribute('data-original-text', match.text);
+
+            range.deleteContents();
+            range.insertNode(linkElement);
+
+            // Place the cursor right after the new link
+            const selection = window.getSelection();
+            if (selection) {
+                const cursor = document.createRange();
+                cursor.setStartAfter(linkElement);
+                cursor.collapse(true);
+                selection.removeAllRanges();
+                selection.addRange(cursor);
+            }
+
+            match = findFirstMarkdownLink(editor.textContent || '');
+        }
+    }
+
+    // Build a DOM range covering the given character offsets of the editor's text
+    private createRangeFromTextOffsets(root: HTMLElement, start: number, end: number): Range | null {
+        const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+        let pos = 0;
+        let startNode: Node | null = null;
+        let startOffset = 0;
+        let endNode: Node | null = null;
+        let endOffset = 0;
+
+        let node: Node | null;
+        while ((node = walker.nextNode())) {
+            const length = node.textContent?.length || 0;
+            if (!startNode && pos + length >= start) {
+                startNode = node;
+                startOffset = start - pos;
+            }
+            if (startNode && pos + length >= end) {
+                endNode = node;
+                endOffset = end - pos;
+                break;
+            }
+            pos += length;
+        }
+
+        if (!startNode || !endNode) return null;
+
+        const range = document.createRange();
+        range.setStart(startNode, startOffset);
+        range.setEnd(endNode, endOffset);
+        return range;
+    }
 
     private fixExtendedLinks(editor: HTMLElement) {
         const linkElements = editor.querySelectorAll('.bluesky-link');
@@ -206,8 +277,11 @@ export class BlueskyTab extends ItemView {
             return; // Don't change existing preview when typing with manual links
         }
         
-        // Check for URLs in both plain text and manual links
-        let url = typeof text === 'string' && text.startsWith('http') ? text : this.bot.extractFirstUrl(text);
+        // Check for URLs in markdown links, plain text, and manual links
+        const markdownLinks = parseMarkdownLinks(text).links;
+        let url = markdownLinks.length > 0
+            ? markdownLinks[0].url
+            : (typeof text === 'string' && text.startsWith('http') ? text : this.bot.extractFirstUrl(text));
         
         // If no URL found in plain text, check manual links
         if (!url && hasManualLinks) {
@@ -497,20 +571,28 @@ export class BlueskyTab extends ItemView {
     private async publishContent() {
         if (this.isPosting) return;
 
-        const validPosts = this.posts.filter(post => post.trim());
+        // Pair each post with the links from its editor before filtering,
+        // so post text and link ranges stay aligned
+        const editors = Array.from(this.containerEl.querySelectorAll('.bluesky-editor')) as HTMLElement[];
+        const validPosts = this.posts
+            .map((text, index) => ({
+                text,
+                links: editors[index] ? this.extractLinksFromEditor(editors[index]) : []
+            }))
+            .filter(post => post.text.trim());
         if (!validPosts.length) return;
         let success = false
         try {
             this.isPosting = true;
             await this.bot.login();
             if (validPosts.length === 1) {
-                // Extract links from the editor for the first post
-                const editor = this.containerEl.querySelector('.bluesky-editor') as HTMLElement;
-                const editorLinks = editor ? this.extractLinksFromEditor(editor) : [];
                 const metadata = this.linkMetadata.get(0); // Get metadata for first post
-                success = await this.bot.createPost(validPosts[0], metadata, editorLinks);
+                success = await this.bot.createPost(validPosts[0].text, metadata, validPosts[0].links);
             } else {
-                success = await this.bot.createThread(validPosts);
+                success = await this.bot.createThread(
+                    validPosts.map(post => post.text),
+                    validPosts.map(post => post.links)
+                );
             }
             this.posts = [''];
             this.linkMetadata.clear();

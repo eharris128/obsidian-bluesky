@@ -294,3 +294,9 @@
     border-radius: var(--radius-m);
     background-color: var(--background-secondary);
 }
+
+/* Let long URLs wrap inside the preview instead of overflowing */
+.bluesky-confirm-preview .bluesky-link {
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
