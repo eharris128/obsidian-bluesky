@@ -56,7 +56,6 @@
 .bluesky-link {
     color: var(--interactive-accent);
     text-decoration: underline;
-    text-decoration-color: var(--interactive-accent);
     cursor: pointer;
     display: inline;
     white-space: nowrap;
@@ -146,7 +145,7 @@
     color: var(--text-muted);
 }
 
-.bluesky-close-post {
+.bluesky-compose .bluesky-close-post {
     position: absolute;
     right: 12px;
     top: 1px;
@@ -155,8 +154,8 @@
     padding: 4px;
     z-index: 1;
     transition: box-shadow 0.2s ease;
-    background: transparent !important;
-    box-shadow: none !important;
+    background: transparent;
+    box-shadow: none;
     &:hover {
         color: var(--text-error);
     }

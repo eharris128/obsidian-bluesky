@@ -2,9 +2,9 @@
 	"id": "bluesky",
 	"name": "Bluesky",
 	"version": "1.3.0",
-	"minAppVersion": "0.15.0",
+	"minAppVersion": "1.5.7",
 	"description": "Post to Bluesky.",
 	"author": "eharris128",
-	"authorUrl": "https://bsky.app/profile/evanharris.bsky.social",
+	"authorUrl": "https://evanharris.dev/",
 	"isDesktopOnly": false
 }

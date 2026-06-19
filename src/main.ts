@@ -48,7 +48,7 @@ export default class BlueskyPlugin extends Plugin {
 
                 if (this.settings.confirmBeforePosting) {
                     new ConfirmPostModal(this.app, selectedText, () => {
-                        this.postHighlightedText(selectedText);
+                        void this.postHighlightedText(selectedText);
                     }).open();
                 } else {
                     await this.postHighlightedText(selectedText);
@@ -68,7 +68,7 @@ export default class BlueskyPlugin extends Plugin {
         });
 
         this.addRibbonIcon("megaphone", BLUESKY_TITLE, () => {
-            this.activateBlueskyTab();
+            void this.activateBlueskyTab();
         });
 
         this.addSettingTab(new BlueskySettingTab(this.app, this));
