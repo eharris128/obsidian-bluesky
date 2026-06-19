@@ -4,11 +4,10 @@ import type BlueskyPlugin from '@/main'
 import { logger } from '@/utils/logger'
 import { parseMarkdownLinks, type MarkdownLink } from '@/utils/markdown'
 
-// Utility function to decode HTML entities
+// Utility function to decode HTML entities without writing to the live DOM
 const decodeHtmlEntities = (text: string): string => {
-  const textarea = document.createElement('textarea');
-  textarea.innerHTML = text;
-  return textarea.value;
+  const parsed = new DOMParser().parseFromString(text, 'text/html');
+  return parsed.documentElement.textContent ?? '';
 };
 
 interface ThreadPost {
@@ -67,7 +66,7 @@ export class BlueskyBot {
       let response;
       try {
         response = await this.agent.getProfile({ actor: handle });
-      } catch (error) {
+      } catch {
         if (!this.agent.session?.did) {
           await this.login();
         }
@@ -151,7 +150,7 @@ export class BlueskyBot {
               image: image
             };
           }
-        } catch (e) {
+        } catch {
           logger.warn('Failed to parse Reddit JSON, falling back to HTML');
         }
       }

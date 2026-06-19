@@ -60,55 +60,58 @@ export class BlueskyTab extends ItemView {
         }
 
         // Detect and preview links for any post in the thread
-        this.detectAndPreviewLink(text, true, index);
+        void this.detectAndPreviewLink(text, true, index);
 
         this.updateButtonStates();
     }
 
     private autoStyleUrls(editor: HTMLElement) {
-        const text = editor.textContent || '';
-        const urlRegex = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&//=]*)/g;
-        
-        // Find all URLs in the text
-        const urls = [...text.matchAll(urlRegex)];
-        
-        if (urls.length === 0) return;
-        
-        // Check if any URLs are not already styled
-        const existingLinks = editor.querySelectorAll('.bluesky-link');
-        const styledUrls = Array.from(existingLinks).map(link => link.getAttribute('data-url'));
-        
-        let needsUpdate = false;
-        
-        for (const match of urls) {
-            const url = match[0];
-            if (!styledUrls.includes(url)) {
-                needsUpdate = true;
-                break;
+        const urlRegex = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&//=]*)/;
+
+        let styledAny = false;
+        let madeChange = true;
+
+        // Wrap the first not-yet-styled URL, then re-walk. Rebuilding the walk
+        // after every change keeps text offsets valid as the DOM is mutated and
+        // avoids writing raw HTML to the editor.
+        while (madeChange) {
+            madeChange = false;
+
+            const walker = activeDocument.createTreeWalker(editor, NodeFilter.SHOW_TEXT);
+            let node: Node | null;
+            while ((node = walker.nextNode())) {
+                // Skip text that already lives inside a styled link
+                if (node.parentElement?.closest('.bluesky-link')) continue;
+
+                const nodeText = node.textContent || '';
+                const match = nodeText.match(urlRegex);
+                if (!match || match.index === undefined) continue;
+
+                const url = match[0];
+                const range = activeDocument.createRange();
+                range.setStart(node, match.index);
+                range.setEnd(node, match.index + url.length);
+
+                const linkEl = createSpan({
+                    cls: 'bluesky-link',
+                    text: url,
+                    attr: { 'data-url': url, 'data-original-text': url, title: url }
+                });
+
+                range.deleteContents();
+                range.insertNode(linkEl);
+
+                styledAny = true;
+                madeChange = true;
+                break; // DOM changed; restart the walk
             }
         }
-        
-        if (!needsUpdate) return;
-        
-        // Simple approach: replace innerHTML with styled URLs
-        let html = editor.innerHTML;
-        
-        for (const match of urls) {
-            const url = match[0];
-            if (!styledUrls.includes(url)) {
-                const linkHtml = `<span class="bluesky-link" data-url="${url}" data-original-text="${url}" title="${url}">${url}</span>`;
-                // Only replace the first occurrence to avoid replacing already styled ones
-                html = html.replace(url, linkHtml);
-            }
-        }
-        
-        if (html !== editor.innerHTML) {
-            editor.innerHTML = html;
-            
+
+        if (styledAny) {
             // Place cursor at the end of the content
-            const selection = window.getSelection();
+            const selection = activeWindow.getSelection();
             if (selection) {
-                const range = document.createRange();
+                const range = activeDocument.createRange();
                 range.selectNodeContents(editor);
                 range.collapse(false);
                 selection.removeAllRanges();
@@ -129,20 +132,19 @@ export class BlueskyTab extends ItemView {
             const range = this.createRangeFromTextOffsets(editor, match.start, match.end);
             if (!range) return;
 
-            const linkElement = document.createElement('span');
-            linkElement.className = 'bluesky-link';
-            linkElement.textContent = match.text;
-            linkElement.setAttribute('data-url', match.url);
-            linkElement.setAttribute('title', match.url);
-            linkElement.setAttribute('data-original-text', match.text);
+            const linkElement = createSpan({
+                cls: 'bluesky-link',
+                text: match.text,
+                attr: { 'data-url': match.url, title: match.url, 'data-original-text': match.text }
+            });
 
             range.deleteContents();
             range.insertNode(linkElement);
 
             // Place the cursor right after the new link
-            const selection = window.getSelection();
+            const selection = activeWindow.getSelection();
             if (selection) {
-                const cursor = document.createRange();
+                const cursor = activeDocument.createRange();
                 cursor.setStartAfter(linkElement);
                 cursor.collapse(true);
                 selection.removeAllRanges();
@@ -155,7 +157,7 @@ export class BlueskyTab extends ItemView {
 
     // Build a DOM range covering the given character offsets of the editor's text
     private createRangeFromTextOffsets(root: HTMLElement, start: number, end: number): Range | null {
-        const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+        const walker = activeDocument.createTreeWalker(root, NodeFilter.SHOW_TEXT);
         let pos = 0;
         let startNode: Node | null = null;
         let startOffset = 0;
@@ -179,7 +181,7 @@ export class BlueskyTab extends ItemView {
 
         if (!startNode || !endNode) return null;
 
-        const range = document.createRange();
+        const range = activeDocument.createRange();
         range.setStart(startNode, startOffset);
         range.setEnd(endNode, endOffset);
         return range;
@@ -206,17 +208,17 @@ export class BlueskyTab extends ItemView {
                 linkElement.textContent = originalText;
                 
                 // Create a text node for the extra text and insert it after the link
-                const textNode = document.createTextNode(extraText);
+                const textNode = activeDocument.createTextNode(extraText);
                 if (linkElement.nextSibling) {
                     linkElement.parentNode?.insertBefore(textNode, linkElement.nextSibling);
                 } else {
                     linkElement.parentNode?.appendChild(textNode);
                 }
-                
+
                 // Move cursor to the end of the new text
-                const selection = window.getSelection();
+                const selection = activeWindow.getSelection();
                 if (selection) {
-                    const range = document.createRange();
+                    const range = activeDocument.createRange();
                     range.setStart(textNode, textNode.textContent?.length || 0);
                     range.collapse(true);
                     selection.removeAllRanges();
@@ -258,7 +260,26 @@ export class BlueskyTab extends ItemView {
     private handlePaste(event: ClipboardEvent) {
         event.preventDefault();
         const text = event.clipboardData?.getData('text/plain') || '';
-        document.execCommand('insertText', false, text);
+        if (!text) return;
+
+        const editor = event.currentTarget as HTMLElement;
+        const selection = activeWindow.getSelection();
+        if (!selection || selection.rangeCount === 0) return;
+
+        // Insert the plain text at the caret, replacing any current selection
+        const range = selection.getRangeAt(0);
+        range.deleteContents();
+        const textNode = activeDocument.createTextNode(text);
+        range.insertNode(textNode);
+
+        // Move the caret to just after the inserted text
+        range.setStartAfter(textNode);
+        range.collapse(true);
+        selection.removeAllRanges();
+        selection.addRange(range);
+
+        // Default paste was prevented, so run the normal input handling manually
+        editor.dispatchEvent(new Event('input', { bubbles: true }));
     }
 
     private async detectAndPreviewLink(text: string, preserveManualLinks = false, postIndex = 0) {
@@ -432,7 +453,7 @@ export class BlueskyTab extends ItemView {
     }
 
     private handleLinkInsertion(editor: HTMLElement) {
-        const selection = window.getSelection();
+        const selection = activeWindow.getSelection();
         if (!selection || selection.rangeCount === 0) {
             new Notice('Please select text to turn into a link');
             return;
@@ -446,55 +467,50 @@ export class BlueskyTab extends ItemView {
             return;
         }
 
-        new LinkModal(this.app, async (url) => {
+        new LinkModal(this.app, (url) => {
             if (!url) return;
 
             // Create a link element
-            const linkElement = document.createElement('span');
-            linkElement.className = 'bluesky-link';
-            linkElement.textContent = selectedText;
-            linkElement.setAttribute('data-url', url);
-            linkElement.setAttribute('title', url);
-            linkElement.setAttribute('data-original-text', selectedText);
-            
+            const linkElement = createSpan({
+                cls: 'bluesky-link',
+                text: selectedText,
+                attr: { 'data-url': url, title: url, 'data-original-text': selectedText }
+            });
+
             // Replace the selected text with the link element
             range.deleteContents();
             range.insertNode(linkElement);
-            
+
             // Clear selection
             selection.removeAllRanges();
-            
+
             // Update the stored post content
             const index = parseInt(editor.getAttribute('data-index') || '0');
             this.posts[index] = this.getEditorText(editor);
-            
+
             // Store link information for posting
             if (!this.linkRanges) {
                 this.linkRanges = [];
             }
-            
+
             this.linkRanges.push({
                 start: 0, // We'll calculate this properly when posting
                 end: 0,
                 url: url,
                 text: selectedText
             });
-            
+
             this.updateButtonStates();
-            
+
             // Show a visual indicator that the link has been added
             new Notice(`Link added to "${selectedText}"`);
-            
-            // Try to show link preview for the manually added link
-            try {
-                const index = parseInt(editor.getAttribute('data-index') || '0');
-                // Only show preview if we don't already have one for this post
-                if (!this.linkMetadata.get(index)) {
-                    await this.detectAndPreviewLink(url, false, index);
-                }
-            } catch (error) {
-                logger.warn('Could not fetch link preview:', error);
-                // Link is still added, just without preview
+
+            // Try to show link preview for the manually added link. The link is
+            // already added, so a failed preview is non-fatal.
+            if (!this.linkMetadata.get(index)) {
+                void this.detectAndPreviewLink(url, false, index).catch((error) => {
+                    logger.warn('Could not fetch link preview:', error);
+                });
             }
         }).open();
     }
@@ -573,7 +589,7 @@ export class BlueskyTab extends ItemView {
 
         // Pair each post with the links from its editor before filtering,
         // so post text and link ranges stay aligned
-        const editors = Array.from(this.containerEl.querySelectorAll('.bluesky-editor')) as HTMLElement[];
+        const editors = Array.from(this.containerEl.querySelectorAll<HTMLElement>('.bluesky-editor'));
         const validPosts = this.posts
             .map((text, index) => ({
                 text,
@@ -688,7 +704,7 @@ export class BlueskyTab extends ItemView {
             cls: 'bluesky-post-btn mod-primary'
         });
 
-        postButton.addEventListener('click', () => this.publishContent());
+        postButton.addEventListener('click', () => { void this.publishContent(); });
 
         this.updateButtonStates();
     }

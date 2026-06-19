@@ -50,7 +50,7 @@ export class LinkModal extends Modal {
                     })
             );
 
-        setTimeout(() => {
+        window.setTimeout(() => {
             const inputEl = contentEl.querySelector("input");
             inputEl?.focus();
         }, 50);
