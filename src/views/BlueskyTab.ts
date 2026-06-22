@@ -527,7 +527,7 @@ export class BlueskyTab extends ItemView {
 
     private async handleReplyUrlChange(rawUrl: string) {
         const url = rawUrl.trim();
-        const replyContainer = this.containerEl.querySelector('.bluesky-reply') as HTMLElement | null;
+        const replyContainer = this.containerEl.querySelector<HTMLElement>('.bluesky-reply');
         if (!replyContainer) return;
 
         // Bump the sequence so any in-flight lookup from an earlier change
@@ -614,7 +614,7 @@ export class BlueskyTab extends ItemView {
             this.replyTarget = null;
             this.replyUrlPending = false;
             preview.remove();
-            const input = this.containerEl.querySelector('.bluesky-reply-input') as HTMLInputElement | null;
+            const input = this.containerEl.querySelector<HTMLInputElement>('.bluesky-reply-input');
             if (input) input.value = '';
             this.updateButtonStates();
         });
