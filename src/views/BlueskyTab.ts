@@ -518,14 +518,18 @@ export class BlueskyTab extends ItemView {
         }).open();
     }
 
+    private clearReplyStatus(container: HTMLElement) {
+        container.querySelector('.bluesky-reply-preview')?.remove();
+        container.querySelector('.bluesky-reply-error')?.remove();
+        container.querySelector('.bluesky-reply-loading')?.remove();
+    }
+
     private async handleReplyUrlChange(rawUrl: string) {
         const url = rawUrl.trim();
         const replyContainer = this.containerEl.querySelector('.bluesky-reply') as HTMLElement | null;
         if (!replyContainer) return;
 
-        replyContainer.querySelector('.bluesky-reply-preview')?.remove();
-        replyContainer.querySelector('.bluesky-reply-error')?.remove();
-        replyContainer.querySelector('.bluesky-reply-loading')?.remove();
+        this.clearReplyStatus(replyContainer);
 
         if (!url) {
             this.replyTarget = null;
@@ -572,14 +576,12 @@ export class BlueskyTab extends ItemView {
     }
 
     private showReplyError(container: HTMLElement, message: string) {
-        container.querySelector('.bluesky-reply-preview')?.remove();
-        container.querySelector('.bluesky-reply-error')?.remove();
+        this.clearReplyStatus(container);
         container.createDiv({ cls: 'bluesky-reply-error', text: message });
     }
 
     private showReplyPreview(container: HTMLElement, target: ReplyTarget) {
-        container.querySelector('.bluesky-reply-preview')?.remove();
-        container.querySelector('.bluesky-reply-error')?.remove();
+        this.clearReplyStatus(container);
 
         const preview = container.createDiv({ cls: 'bluesky-reply-preview' });
         preview.createDiv({ cls: 'bluesky-reply-preview-label', text: 'Replying to' });
