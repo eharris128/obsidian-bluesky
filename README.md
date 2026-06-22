@@ -19,13 +19,25 @@ A new `megaphone` icon will appear in the left sidebar after you install the plu
     - Click "Post" to post to Bluesky.
 - If you prefer to use the command palette, you can run the `Open Bluesky tab` command.
 
+### Reply to a post
+
+You can add your post (or a whole thread) as a reply that continues an existing Bluesky post.
+
+- Open the Bluesky tab.
+- Paste the post's URL (e.g. `https://bsky.app/profile/handle/post/...`) into the **Reply to a Bluesky post** field at the top.
+- The plugin looks up the post and shows a preview so you can confirm the target.
+- Write your post or thread and click "Post" — it will be attached as a reply.
+
+Leave the field empty to post normally. Any public post can be replied to.
+
 ## Network use & privacy
 
 This plugin only contacts the network for the following, all initiated by you:
 
-- **Bluesky (`bsky.social`)** - to authenticate with your App Password and to
+- **Bluesky (`bsky.social`)** - to authenticate with your App Password, to
   publish posts, threads, and uploaded images via the AT Protocol
-  (`@atproto/api`). Your credentials are stored locally and sent only to Bluesky.
+  (`@atproto/api`), and to look up a post you choose to reply to. Your
+  credentials are stored locally and sent only to Bluesky.
 - **Link preview generation** - when your post includes a URL, the plugin fetches
   that URL (and its preview image) to build the embedded link card. This means it
   contacts whatever domain you linked to.
