@@ -18,6 +18,7 @@ export class BlueskyTab extends ItemView {
     private linkRanges: Array<{start: number, end: number, url: string, text: string}> = [];
     private replyTarget: ReplyTarget | null = null; // resolved post to reply to
     private replyUrlPending = false; // reply field non-empty but unresolved/invalid
+    private replyRequestSeq = 0; // guards against out-of-order reply lookups
 
     constructor(leaf: WorkspaceLeaf, plugin: BlueskyPlugin) {
         super(leaf);
@@ -529,6 +530,10 @@ export class BlueskyTab extends ItemView {
         const replyContainer = this.containerEl.querySelector('.bluesky-reply') as HTMLElement | null;
         if (!replyContainer) return;
 
+        // Bump the sequence so any in-flight lookup from an earlier change
+        // becomes stale and discards its result instead of overwriting this one.
+        const seq = ++this.replyRequestSeq;
+
         this.clearReplyStatus(replyContainer);
 
         if (!url) {
@@ -552,27 +557,29 @@ export class BlueskyTab extends ItemView {
         this.updateButtonStates();
         const loadingEl = replyContainer.createDiv({ cls: 'bluesky-reply-loading', text: 'Looking up post…' });
 
+        let target: ReplyTarget | null = null;
         try {
-            const target = await this.bot.resolveReplyTarget(url);
-            loadingEl.remove();
-            if (!target) {
-                this.replyUrlPending = true;
-                this.showReplyError(replyContainer, "Couldn't find that post.");
-                this.updateButtonStates();
-                return;
-            }
-            this.replyTarget = target;
-            this.replyUrlPending = false;
-            this.showReplyPreview(replyContainer, target);
-            this.updateButtonStates();
+            target = await this.bot.resolveReplyTarget(url);
         } catch (error) {
-            loadingEl.remove();
             logger.warn('Failed to resolve reply target:', error);
+        }
+
+        // A newer change superseded this lookup — discard its result. The newer
+        // call's clearReplyStatus already removed this call's loading row.
+        if (seq !== this.replyRequestSeq) return;
+
+        loadingEl.remove();
+        if (!target) {
             this.replyTarget = null;
             this.replyUrlPending = true;
             this.showReplyError(replyContainer, "Couldn't find that post.");
             this.updateButtonStates();
+            return;
         }
+        this.replyTarget = target;
+        this.replyUrlPending = false;
+        this.showReplyPreview(replyContainer, target);
+        this.updateButtonStates();
     }
 
     private showReplyError(container: HTMLElement, message: string) {
