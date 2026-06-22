@@ -299,3 +299,95 @@
     white-space: normal;
     overflow-wrap: anywhere;
 }
+
+.bluesky-reply {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.bluesky-reply-input {
+    width: 100%;
+    max-width: 513.667px;
+    padding: 8px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 4px;
+    background: var(--background-primary);
+    font-size: 14px;
+}
+
+.bluesky-reply-input:focus {
+    border-color: var(--interactive-accent);
+    box-shadow: 0 0 0 2px var(--interactive-accent-hover);
+    outline: none;
+}
+
+.bluesky-reply-loading {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.bluesky-reply-error {
+    font-size: 12px;
+    color: var(--text-error);
+}
+
+.bluesky-reply-preview {
+    position: relative;
+    border: 1px solid var(--background-modifier-border);
+    border-left: 3px solid var(--interactive-accent);
+    border-radius: 8px;
+    padding: 12px;
+    padding-right: 36px;
+    background: var(--background-secondary);
+    max-width: 500px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.bluesky-reply-preview-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-faint);
+}
+
+.bluesky-reply-preview-author {
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.bluesky-reply-preview-text {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.4;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+}
+
+.bluesky-reply-preview-remove {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 24px;
+    height: 24px;
+    padding: 4px;
+    background: var(--background-primary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.8;
+    transition: opacity 0.2s ease;
+}
+
+.bluesky-reply-preview-remove:hover {
+    opacity: 1;
+    background: var(--background-primary-alt);
+}

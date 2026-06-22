@@ -17,6 +17,19 @@ async function typeIntoEditor(text: string): Promise<void> {
 	}, LEAF_SELECTOR, text);
 }
 
+/**
+ * Set the reply-to field and fire its change event. Only use values that fail
+ * parseBskyPostUrl (or empty): a valid bsky.app post URL triggers a real
+ * resolveReplyTarget network call, which this offline suite must avoid.
+ */
+async function setReplyUrl(value: string): Promise<void> {
+	await browser.executeObsidian((_args, leafSelector, v) => {
+		const input = document.querySelector(`${leafSelector} .bluesky-reply-input`) as HTMLInputElement;
+		input.value = v;
+		input.dispatchEvent(new Event("change", { bubbles: true }));
+	}, LEAF_SELECTOR, value);
+}
+
 describe("Bluesky tab view", function () {
 	beforeEach(async function () {
 		await browser.executeObsidian(({ app }, viewType) => {
@@ -75,6 +88,36 @@ describe("Bluesky tab view", function () {
 
 		await leaf.$(".bluesky-close-post").click();
 		await expect(leaf.$$(".bluesky-compose")).toBeElementsArrayOfSize(1);
+	});
+
+	it("renders the reply-to field", async function () {
+		const leaf = browser.$(LEAF_SELECTOR);
+		const input = leaf.$(".bluesky-reply-input");
+		await expect(input).toExist();
+		expect(await input.getAttribute("placeholder")).toContain("Reply to a Bluesky post");
+	});
+
+	it("blocks Post and shows an error for an invalid reply URL", async function () {
+		const leaf = browser.$(LEAF_SELECTOR);
+		await typeIntoEditor("Hello world");
+		await expect(leaf.$(".bluesky-post-btn")).toBeEnabled();
+
+		await setReplyUrl("not a url");
+		await expect(leaf.$(".bluesky-reply-error")).toExist();
+		await expect(leaf.$(".bluesky-post-btn")).not.toBeEnabled();
+	});
+
+	it("re-enables Post when the invalid reply URL is cleared", async function () {
+		const leaf = browser.$(LEAF_SELECTOR);
+		await typeIntoEditor("Hello world");
+
+		await setReplyUrl("not a url");
+		await expect(leaf.$(".bluesky-reply-error")).toExist();
+		await expect(leaf.$(".bluesky-post-btn")).not.toBeEnabled();
+
+		await setReplyUrl("");
+		await expect(leaf.$(".bluesky-reply-error")).not.toExist();
+		await expect(leaf.$(".bluesky-post-btn")).toBeEnabled();
 	});
 
 	it("opens the insert-link modal for selected text and closes on Escape", async function () {

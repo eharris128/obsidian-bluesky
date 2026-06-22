@@ -1,5 +1,6 @@
 import { ItemView, Notice, WorkspaceLeaf } from "obsidian";
 import { BlueskyBot, type LinkMetadata } from '@/bluesky';
+import { parseBskyPostUrl, type ReplyTarget } from '@/utils/reply';
 import type BlueskyPlugin from '@/main';
 import { BLUESKY_TITLE, VIEW_TYPE_TAB } from '@/consts';
 import { LinkModal } from '@/modals/LinkModal';
@@ -15,6 +16,9 @@ export class BlueskyTab extends ItemView {
     private linkMetadata: Map<number, LinkMetadata> = new Map(); // Track metadata per post index
     private linkPreviewEls: Map<number, HTMLElement> = new Map(); // Track preview elements per post
     private linkRanges: Array<{start: number, end: number, url: string, text: string}> = [];
+    private replyTarget: ReplyTarget | null = null; // resolved post to reply to
+    private replyUrlPending = false; // reply field non-empty but unresolved/invalid
+    private replyRequestSeq = 0; // guards against out-of-order reply lookups
 
     constructor(leaf: WorkspaceLeaf, plugin: BlueskyPlugin) {
         super(leaf);
@@ -515,6 +519,107 @@ export class BlueskyTab extends ItemView {
         }).open();
     }
 
+    private clearReplyStatus(container: HTMLElement) {
+        container.querySelector('.bluesky-reply-preview')?.remove();
+        container.querySelector('.bluesky-reply-error')?.remove();
+        container.querySelector('.bluesky-reply-loading')?.remove();
+    }
+
+    private async handleReplyUrlChange(rawUrl: string) {
+        const url = rawUrl.trim();
+        const replyContainer = this.containerEl.querySelector<HTMLElement>('.bluesky-reply');
+        if (!replyContainer) return;
+
+        // Bump the sequence so any in-flight lookup from an earlier change
+        // becomes stale and discards its result instead of overwriting this one.
+        const seq = ++this.replyRequestSeq;
+
+        this.clearReplyStatus(replyContainer);
+
+        if (!url) {
+            this.replyTarget = null;
+            this.replyUrlPending = false;
+            this.updateButtonStates();
+            return;
+        }
+
+        // Cheap offline check first — only hit the network for a real post URL
+        if (!parseBskyPostUrl(url)) {
+            this.replyTarget = null;
+            this.replyUrlPending = true;
+            this.showReplyError(replyContainer, 'Not a Bluesky post URL.');
+            this.updateButtonStates();
+            return;
+        }
+
+        this.replyTarget = null;
+        this.replyUrlPending = true;
+        this.updateButtonStates();
+        const loadingEl = replyContainer.createDiv({ cls: 'bluesky-reply-loading', text: 'Looking up post…' });
+
+        let target: ReplyTarget | null = null;
+        try {
+            target = await this.bot.resolveReplyTarget(url);
+        } catch (error) {
+            logger.warn('Failed to resolve reply target:', error);
+        }
+
+        // A newer change superseded this lookup — discard its result. The newer
+        // call's clearReplyStatus already removed this call's loading row.
+        if (seq !== this.replyRequestSeq) return;
+
+        loadingEl.remove();
+        if (!target) {
+            this.replyTarget = null;
+            this.replyUrlPending = true;
+            this.showReplyError(replyContainer, "Couldn't find that post.");
+            this.updateButtonStates();
+            return;
+        }
+        this.replyTarget = target;
+        this.replyUrlPending = false;
+        this.showReplyPreview(replyContainer, target);
+        this.updateButtonStates();
+    }
+
+    private showReplyError(container: HTMLElement, message: string) {
+        this.clearReplyStatus(container);
+        container.createDiv({ cls: 'bluesky-reply-error', text: message });
+    }
+
+    private showReplyPreview(container: HTMLElement, target: ReplyTarget) {
+        this.clearReplyStatus(container);
+
+        const preview = container.createDiv({ cls: 'bluesky-reply-preview' });
+        preview.createDiv({ cls: 'bluesky-reply-preview-label', text: 'Replying to' });
+
+        const author = target.preview.authorName
+            ? `${target.preview.authorName} (@${target.preview.authorHandle})`
+            : `@${target.preview.authorHandle}`;
+        preview.createDiv({ cls: 'bluesky-reply-preview-author', text: author });
+
+        const snippet = target.preview.text.length > 200
+            ? target.preview.text.slice(0, 200) + '…'
+            : target.preview.text;
+        if (snippet) {
+            preview.createDiv({ cls: 'bluesky-reply-preview-text', text: snippet });
+        }
+
+        const removeBtn = preview.createEl('button', {
+            cls: 'bluesky-reply-preview-remove',
+            attr: { 'aria-label': 'Remove reply target' }
+        });
+        this.plugin.addIcon(removeBtn, 'lucide-x');
+        removeBtn.addEventListener('click', () => {
+            this.replyTarget = null;
+            this.replyUrlPending = false;
+            preview.remove();
+            const input = this.containerEl.querySelector<HTMLInputElement>('.bluesky-reply-input');
+            if (input) input.value = '';
+            this.updateButtonStates();
+        });
+    }
+
     private updateButtonStates() {
         const addThreadBtn = this.containerEl.querySelector('.add-bluesky-thread-btn') as HTMLButtonElement;
         if (addThreadBtn) {
@@ -526,7 +631,7 @@ export class BlueskyTab extends ItemView {
             const hasValidFirstPost = this.posts[0]?.trim().length > 0;
             const hasAnyContent = this.posts.some(post => post.trim());
             const isExceeded = this.posts.some(post => post.length > this.MAX_CHARS);
-            postButton.disabled = !hasValidFirstPost || !hasAnyContent || isExceeded;
+            postButton.disabled = !hasValidFirstPost || !hasAnyContent || isExceeded || this.replyUrlPending;
         }
     }
 
@@ -586,6 +691,7 @@ export class BlueskyTab extends ItemView {
 
     private async publishContent() {
         if (this.isPosting) return;
+        if (this.replyUrlPending) return; // reply URL entered but not resolved
 
         // Pair each post with the links from its editor before filtering,
         // so post text and link ranges stay aligned
@@ -601,19 +707,23 @@ export class BlueskyTab extends ItemView {
         try {
             this.isPosting = true;
             await this.bot.login();
+            const replyRefs = this.replyTarget?.refs;
             if (validPosts.length === 1) {
                 const metadata = this.linkMetadata.get(0); // Get metadata for first post
-                success = await this.bot.createPost(validPosts[0].text, metadata, validPosts[0].links);
+                success = await this.bot.createPost(validPosts[0].text, metadata, validPosts[0].links, replyRefs);
             } else {
                 success = await this.bot.createThread(
                     validPosts.map(post => post.text),
-                    validPosts.map(post => post.links)
+                    validPosts.map(post => post.links),
+                    replyRefs
                 );
             }
             this.posts = [''];
             this.linkMetadata.clear();
             this.linkPreviewEls.clear();
             this.linkRanges = [];
+            this.replyTarget = null;
+            this.replyUrlPending = false;
         } catch (error) {
             logger.error('Failed to post:', error);
             if (error.message.includes('Failed to fetch')) {
@@ -642,8 +752,23 @@ export class BlueskyTab extends ItemView {
         this.linkRanges = [];
         this.linkMetadata.clear();
         this.linkPreviewEls.clear();
+        this.replyTarget = null;
+        this.replyUrlPending = false;
 
         container.createEl("h4", { text: "Bluesky" });
+
+        // Optional reply target: paste a bsky.app post URL to attach this post
+        // (or thread) as a reply that continues that post's thread.
+        const replyContainer = container.createDiv({ cls: 'bluesky-reply' });
+        const replyInput = replyContainer.createEl('input', {
+            cls: 'bluesky-reply-input',
+            attr: {
+                type: 'text',
+                placeholder: 'Reply to a Bluesky post (paste its URL, optional)',
+                'aria-label': 'Reply to a Bluesky post by pasting its URL'
+            }
+        });
+        replyInput.addEventListener('change', () => { void this.handleReplyUrlChange(replyInput.value); });
 
         this.posts.forEach((post, index) => {
             const postContainer = container.createDiv({ cls: 'bluesky-compose' });

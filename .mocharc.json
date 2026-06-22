@@ -1,0 +1,5 @@
+{
+  "spec": "test/unit/**/*.test.ts",
+  "node-option": ["import=tsx"],
+  "failZero": false
+}

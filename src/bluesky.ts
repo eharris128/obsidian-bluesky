@@ -3,6 +3,7 @@ import { AtpAgent, RichText, AppBskyEmbedExternal, BlobRef, type $Typed } from '
 import type BlueskyPlugin from '@/main'
 import { logger } from '@/utils/logger'
 import { parseMarkdownLinks, type MarkdownLink } from '@/utils/markdown'
+import { resolveReplyTarget as resolveReplyTargetUtil, type ReplyRefs, type ReplyTarget } from '@/utils/reply'
 
 // Utility function to decode HTML entities without writing to the live DOM
 const decodeHtmlEntities = (text: string): string => {
@@ -48,6 +49,22 @@ export class BlueskyBot {
       logger.error('Failed to login:', error)
       throw error
     }
+  }
+
+  // Resolve a bsky.app post URL into a reply target. Public posts resolve
+  // without auth; if that yields nothing and we have no session, log in and
+  // retry once (mirrors fetchBlueskyProfileMetadata).
+  async resolveReplyTarget(url: string): Promise<ReplyTarget | null> {
+    let target = await resolveReplyTargetUtil(this.agent, url)
+    if (!target && !this.agent.session?.did) {
+      try {
+        await this.login()
+      } catch {
+        return null
+      }
+      target = await resolveReplyTargetUtil(this.agent, url)
+    }
+    return target
   }
 
   async fetchBlueskyProfileMetadata(url: string): Promise<LinkMetadata | null> {
@@ -300,7 +317,7 @@ export class BlueskyBot {
     return richText
   }
 
-  async createPost(text: string, linkMetadata?: LinkMetadata, linkRanges?: Array<{start: number, end: number, url: string, text: string}>): Promise<boolean> {
+  async createPost(text: string, linkMetadata?: LinkMetadata, linkRanges?: Array<{start: number, end: number, url: string, text: string}>, replyRefs?: ReplyRefs): Promise<boolean> {
     try {
       if (!this.agent.session?.did) {
         throw new Error('Not logged in')
@@ -334,7 +351,8 @@ export class BlueskyBot {
       const result = await this.agent.post({
         text: richText.text,
         facets: richText.facets,
-        embed
+        embed,
+        ...(replyRefs ? { reply: replyRefs } : {})
       })
       new Notice('Successfully posted to Bluesky!');
       await this.archivePosts([{ text: richText.text, url: this.getPostUrl(result.uri) }])
@@ -350,11 +368,14 @@ export class BlueskyBot {
     }
   }
 
-  async createThread(posts: string[], linkRanges?: Array<Array<{start: number, end: number, url: string, text: string}>>): Promise<boolean> {
+  async createThread(posts: string[], linkRanges?: Array<Array<{start: number, end: number, url: string, text: string}>>, replyRefs?: ReplyRefs): Promise<boolean> {
     if (!posts.length) return false
 
-    let lastPost: { uri: string; cid: string } | null = null
-    let rootPost: { uri: string; cid: string } | null = null
+    // When replying to an existing post, seed the chain with that post's thread
+    // root and the target as the first parent. The root then stays constant for
+    // the whole thread; without a reply target the first post becomes the root.
+    let lastPost: { uri: string; cid: string } | null = replyRefs?.parent ?? null
+    let rootPost: { uri: string; cid: string } | null = replyRefs?.root ?? null
     const published: Array<{ text: string; url: string }> = []
 
     for (let i = 0; i < posts.length; i++) {
