@@ -21,6 +21,20 @@ OBSIDIAN_APP_VERSION=1.7.7 OBSIDIAN_INSTALLER_VERSION=1.7.7 npm run test:e2e
 Do **not** use `OBSIDIAN_APP_VERSION=earliest` — this plugin's `minAppVersion`
 is 0.15.0, far older than anything wdio-obsidian-service can download and run.
 
+## Unit tests
+
+Fast, network-free tests for pure `src/` logic, run with mocha via `tsx` (no
+Obsidian download, no build step):
+
+```bash
+npm run test:unit
+```
+
+Specs live in `test/unit/**/*.test.ts` and import the modules under test by
+relative path (e.g. `../../src/utils/reply`). Modules covered here must not
+import `obsidian` — keep that logic in obsidian-free helpers so it stays
+unit-testable in plain Node. Config is in `.mocharc.json` at the repo root.
+
 ## Layout
 
 | Path | Purpose |
@@ -30,6 +44,8 @@ is 0.15.0, far older than anything wdio-obsidian-service can download and run.
 | `test/plugin-dist/` | Staged plugin installed into test vaults (gitignored) |
 | `test/vaults/simple/` | Default test vault, copied fresh per run |
 | `test/specs/*.e2e.ts` | Mocha specs (own `test/tsconfig.json`, type-checked by `test:e2e`) |
+| `test/unit/*.test.ts` | Network-free unit specs run by `test:unit` (mocha + tsx) |
+| `.mocharc.json` (repo root) | Mocha config for the unit lane |
 | `test/logs/` | wdio logs (gitignored) |
 
 ## Conventions
