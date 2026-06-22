@@ -19,6 +19,20 @@ A new `megaphone` icon will appear in the left sidebar after you install the plu
     - Click "Post" to post to Bluesky.
 - If you prefer to use the command palette, you can run the `Open Bluesky tab` command.
 
+## Network use & privacy
+
+This plugin only contacts the network for the following, all initiated by you:
+
+- **Bluesky (`bsky.social`)** - to authenticate with your App Password and to
+  publish posts, threads, and uploaded images via the AT Protocol
+  (`@atproto/api`). Your credentials are stored locally and sent only to Bluesky.
+- **Link preview generation** - when your post includes a URL, the plugin fetches
+  that URL (and its preview image) to build the embedded link card. This means it
+  contacts whatever domain you linked to.
+
+No telemetry or analytics are collected. The plugin makes no network requests
+unless you post or include a link.
+
 ## Testing
 
 ```bash
