@@ -298,14 +298,27 @@ class BlueskySettingTab extends PluginSettingTab {
 
 		containerEl.empty();
 
-		containerEl.createEl("h2", { text: "Bluesky Settings" });
+		containerEl.createEl("p", {
+			text: "To get your app password:",
+		});
+		const steps = containerEl.createEl("ol");
+		const li = steps.createEl("li");
+		li.setText("Go to Bluesky App Passwords ");
+		li.createEl("a", {
+			text: "page",
+			href: "https://bsky.app/settings/app-passwords",
+		});
+		steps.createEl("li", { text: 'Click "Add App Password"' });
+		steps.createEl("li", { text: 'Give it a name (e.g. "Obsidian")' });
+		steps.createEl("li", { text: 'Click "Create App Password"' });
+		steps.createEl("li", { text: "Copy the generated password" });
 
 		new Setting(containerEl)
-			.setName("Bluesky Handle")
-			.setDesc("Your Bluesky handle (e.g., @example.bsky.social)")
+			.setName("Bluesky identifier")
+			.setDesc("Your Bluesky handle or email (required)")
 			.addText((text) =>
 				text
-					.setPlaceholder("Enter your Bluesky handle")
+					.setPlaceholder("handle.bsky.social")
 					.setValue(this.plugin.settings.blueskyIdentifier)
 					.onChange(async (value) => {
 						this.plugin.settings.blueskyIdentifier = value;
@@ -314,11 +327,12 @@ class BlueskySettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName("Bluesky App Password")
-			.setDesc("Your Bluesky app password")
+			.setName("Bluesky app password")
+			.setDesc("Your Bluesky app password (required)")
 			.addText((text) =>
 				text
-					.setPlaceholder("Enter your Bluesky app password")
+					.setPlaceholder("Enter app password")
+					.then((text) => (text.inputEl.type = "password"))
 					.setValue(this.plugin.settings.blueskyAppPassword)
 					.onChange(async (value) => {
 						this.plugin.settings.blueskyAppPassword = value;
@@ -327,7 +341,7 @@ class BlueskySettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName("Blocked Word")
+			.setName("Blocked word")
 			.setDesc("Word to be blocked in posts (used for transform)")
 			.addText((text) =>
 				text
